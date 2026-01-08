@@ -124,8 +124,7 @@ INSERT IGNORE INTO categories (name, type, icon_class) VALUES
 ('VFX', 'asset', 'aperture-outline'),
 ('LUTs', 'asset', 'color-filter-outline'),
 ('Transitions', 'asset', 'swap-horizontal-outline'),
-('Audio', 'asset', 'musical-notes-outline'),
-('3D Models', 'asset', 'cube-outline'),
+('SFX', 'asset', 'musical-notes-outline'),
 ('Premiere Pro', 'tutorial', 'logo-youtube'),
 ('After Effects', 'tutorial', 'film-outline'),
 ('DaVinci Resolve', 'tutorial', 'color-wand-outline');

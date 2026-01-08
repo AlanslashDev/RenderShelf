@@ -48,12 +48,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Server settings
                 $mail->SMTPDebug = 0; // Disable verbose debug output for production
                 $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
+                $mail->Host       = getenv('SMTP_HOST');
                 $mail->SMTPAuth   = true;
-                $mail->Username   = 'alanthomas2028@mca.ajce.in';
-                $mail->Password   = 'utzmwjiofyikcnou';
+                $mail->Username   = getenv('SMTP_USER');
+                $mail->Password   = getenv('SMTP_PASS');
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                $mail->Port       = 465;
+                $mail->Port       = getenv('SMTP_PORT');
                 $mail->SMTPOptions = array(
                     'ssl' => array(
                         'verify_peer' => false,
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 );
                 
                 // Recipients
-                $mail->setFrom('alanthomas2028@mca.ajce.in', 'RenderShelf');
+                $mail->setFrom(getenv('SMTP_FROM_EMAIL'), getenv('SMTP_FROM_NAME'));
                 $mail->addAddress($email);
                 
                 // Content
