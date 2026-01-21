@@ -17,6 +17,8 @@ if (isset($_POST['add_category'])) {
 
     if (empty($name)) {
         $error = "Category name is required.";
+    } elseif (!in_array($type, ['asset', 'tutorial'])) {
+        $error = "Invalid category type.";
     } else {
         $stmt = $conn->prepare("INSERT INTO categories (name, type, icon_class) VALUES (?, ?, ?)");
         $stmt->bind_param("sss", $name, $type, $icon);
@@ -47,7 +49,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY type, name");
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Categories - RenderShelf</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <?php include 'includes/admin_styles.php'; ?>
@@ -99,7 +101,7 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY type, name");
                             </td>
                             <td>
                                 <div style="display:flex; justify-content: flex-end;">
-                                    <a href="?delete=<?php echo $cat['id']; ?>" onclick="return confirm('Deleting this category might affect assets/tutorials using it. Continue?')" class="view-btn" style="background: rgba(255, 68, 68, 0.1); color: #ff4444; width: 32px; height: 32px;">
+                                    <a href="?delete=<?php echo $cat['id']; ?>" onclick="event.preventDefault(); showDeleteModal(<?php echo $cat['id']; ?>, '<?php echo addslashes($cat['name']); ?>')" class="view-btn" style="background: rgba(255, 68, 68, 0.1); color: #ff4444; width: 32px; height: 32px;">
                                         <ion-icon name="trash-outline"></ion-icon>
                                     </a>
                                 </div>
@@ -146,5 +148,43 @@ $categories = $conn->query("SELECT * FROM categories ORDER BY type, name");
         </div>
         </div>
     </main>
+    <!-- Custom Delete Modal -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-icon-circle">
+                <ion-icon name="trash-outline"></ion-icon>
+            </div>
+            <h3>Delete Category?</h3>
+            <p>Are you sure you want to delete "<span id="delete-asset-title" style="color:white; font-weight:600;"></span>"? This might affect assets and tutorials using it.</p>
+            <div class="modal-actions">
+                <a id="confirm-delete-btn" href="#" class="modal-btn-confirm">Delete Category</a>
+                <button onclick="closeDeleteModal()" class="modal-btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showDeleteModal(id, title) {
+            document.getElementById('delete-asset-title').textContent = title;
+            document.getElementById('confirm-delete-btn').href = '?delete=' + id;
+            const modal = document.getElementById('delete-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
+        }
+
+        // Close modal on click outside card
+        window.onclick = function(event) {
+            const modal = document.getElementById('delete-modal');
+            if (event.target == modal) {
+                closeDeleteModal();
+            }
+        }
+    </script>
 </body>
 </html>

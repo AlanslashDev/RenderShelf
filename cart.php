@@ -12,19 +12,36 @@ require_once 'config.php';
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <header class="dash-header">
-            <div class="logo-area" style="margin:0;">
-                <a href="welcome.php" style="color:white; text-decoration:none;"><h3><ion-icon name="arrow-back-outline"></ion-icon> Back</h3></a>
+    <div class="studio-container">
+        <header class="dash-header" style="border:none; margin-bottom: 20px;">
+            <div class="logo-container">
+                <a href="welcome.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <div class="logo-icon" style="width:30px; height:30px; font-size: 18px;">
+                        <ion-icon name="layers"></ion-icon>
+                    </div>
+                    <h2 style="color:white; margin:0; letter-spacing: -0.5px; font-size: 20px;">RenderShelf</h2>
+                </a>
             </div>
-            <h2>Shopping Cart</h2>
+            <div class="header-right">
+                <div class="header-icons">
+                    <a href="notifications.php" style="font-size: 24px;"><ion-icon name="notifications-outline"></ion-icon></a>
+                </div>
+            </div>
         </header>
 
-        <div style="text-align:center; padding:50px; color:#aaa;">
-            <ion-icon name="cart-outline" style="font-size:48px; margin-bottom:10px;"></ion-icon>
-            <p>Your cart is empty.</p>
-            <p style="font-size:12px;">(Cart functionality is a placeholder. You can Buy items directly.)</p>
-            <a href="browse.php" class="btn-primary" style="display:inline-block; width:auto; margin-top:20px;">Browse Store</a>
+        <a href="welcome.php" class="back-btn">
+            <ion-icon name="arrow-back"></ion-icon> Back to Store
+        </a>
+
+        <div class="section-header" style="margin-bottom: 30px;">
+            <h3 class="section-title" style="font-size: 24px;">Your Cart</h3>
+        </div>
+
+        <div style="text-align: center; padding: 100px 20px; background: rgba(255,255,255,0.02); border-radius: 30px; border: 1px dashed rgba(255,255,255,0.1);">
+            <ion-icon name="cart-outline" style="font-size: 64px; margin-bottom: 20px; color: #222;"></ion-icon>
+            <h3 style="color: white; margin-bottom: 10px;">Your cart is empty</h3>
+            <p style="color: #555; margin-bottom: 30px;">Looks like you haven't added anything to your cart yet.</p>
+            <a href="browse.php" class="btn-primary" style="width: auto; display: inline-flex; padding: 14px 40px; border-radius: 15px;">Continue Shopping</a>
         </div>
     </div>
     

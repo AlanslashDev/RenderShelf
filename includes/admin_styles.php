@@ -194,16 +194,19 @@
         text-align: left;
         padding: 12px 16px;
         color: #555;
-        font-size: 12px;
+        font-size: 11px;
         text-transform: uppercase;
         font-weight: 700;
+        letter-spacing: 1px;
         border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     .admin-table td {
         padding: 16px;
         font-size: 14px;
+        color: #eee;
         border-bottom: 1px solid rgba(255,255,255,0.03);
+        vertical-align: middle;
     }
 
     .status-pill {

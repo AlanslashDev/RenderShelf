@@ -35,23 +35,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->num_rows > 0) {
             $error = "Email already registered";
         } else {
-            // Register user
-            $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+            // Check if username exists
+            $username = trim(filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING));
             if (empty($username)) {
-                // Fallback if empty (shouldn't happen due to required attrib)
                 $username = explode('@', $email)[0]; 
             }
-
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            // Updated INSERT to include username
-            $stmt = $conn->prepare("INSERT INTO users (email, password_hash, username) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $email, $hashed_password, $username);
-
-            if ($stmt->execute()) {
-                $success = "Account created successfully! <a href='login.php'>Log In</a>";
+            
+            $stmt_u = $conn->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt_u->bind_param("s", $username);
+            $stmt_u->execute();
+            $stmt_u->store_result();
+            
+            if ($stmt_u->num_rows > 0) {
+                $error = "Username is already taken";
             } else {
-                $error = "Error: " . $conn->error;
+                // Register user
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $conn->prepare("INSERT INTO users (email, password_hash, username) VALUES (?, ?, ?)");
+                $stmt->bind_param("sss", $email, $hashed_password, $username);
+
+                if ($stmt->execute()) {
+                    $success = "Account created successfully! <a href='login.php'>Log In</a>";
+                } else {
+                    $error = "Error: " . $conn->error;
+                }
             }
+            $stmt_u->close();
         }
         $stmt->close();
     }
@@ -63,7 +72,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join RenderShelf</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <!-- Ionicons for inputs -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>

@@ -45,8 +45,15 @@ if (isset($_GET['delete'])) {
     }
 }
 
-// Fetch all users
-$users = $conn->query("SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC");
+// Fetch all users with financial stats
+$users = $conn->query("
+    SELECT 
+        u.id, u.username, u.email, u.role, u.created_at, u.profile_pic,
+        (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = u.id AND type = 'purchase') as total_spent,
+        (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = u.id AND type = 'sale') as total_earned
+    FROM users u 
+    ORDER BY u.created_at DESC
+");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -84,6 +91,8 @@ $users = $conn->query("SELECT id, username, email, role, created_at FROM users O
                     <tr>
                         <th style="padding-left: 0;">User</th>
                         <th>Email</th>
+                        <th>Spent</th>
+                        <th>Earned</th>
                         <th>Role</th>
                         <th>Joined</th>
                         <th style="text-align: right;">Actions</th>
@@ -94,13 +103,19 @@ $users = $conn->query("SELECT id, username, email, role, created_at FROM users O
                     <tr>
                         <td style="padding-left: 0;">
                             <div style="display:flex; align-items:center; gap:12px;">
-                                <div style="width:32px; height:32px; background:var(--accent-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:white;">
-                                    <?php echo strtoupper(substr($user['username'], 0, 1)); ?>
+                                <div style="width:32px; height:32px; background:var(--accent-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold; color:white; overflow:hidden;">
+                                    <?php if (!empty($user['profile_pic']) && file_exists($user['profile_pic'])): ?>
+                                        <img src="<?php echo htmlspecialchars($user['profile_pic']); ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <?php else: ?>
+                                        <ion-icon name="person"></ion-icon>
+                                    <?php endif; ?>
                                 </div>
                                 <span style="font-weight:600;"><?php echo htmlspecialchars($user['username']); ?></span>
                             </div>
                         </td>
                         <td style="color:#aaa;"><?php echo htmlspecialchars($user['email']); ?></td>
+                        <td style="font-weight: 600; color: #ff4444;">₹<?php echo number_format(abs($user['total_spent']), 2); ?></td>
+                        <td style="font-weight: 600; color: #38ef7d;">₹<?php echo number_format($user['total_earned'], 2); ?></td>
                         <td>
                             <span class="status-pill <?php echo $user['role'] === 'admin' ? 'status-approved' : 'status-pending'; ?>" style="font-size: 10px;">
                                 <?php echo strtoupper($user['role']); ?>

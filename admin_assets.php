@@ -53,12 +53,21 @@ $result = $conn->query("SELECT a.*, u.username FROM assets a JOIN users u ON a.c
                     <?php while($row = $result->fetch_assoc()): ?>
                     <tr>
                         <td style="padding-left: 0;">
-                            <img src="<?php echo htmlspecialchars($row['thumbnail_path'] ?: ($row['preview_path'] ?: 'img/auth_header_geo.png')); ?>" style="width:80px; height:50px; object-fit:cover; border-radius:8px;">
+                            <?php if ($row['thumbnail_path']): ?>
+                                <img src="<?php echo htmlspecialchars($row['thumbnail_path']); ?>" style="width:80px; height:50px; object-fit:cover; border-radius:8px;">
+                            <?php else: ?>
+                                <?php $ext = pathinfo($row['preview_path'], PATHINFO_EXTENSION); ?>
+                                <?php if (in_array(strtolower($ext), ['mp4', 'webm', 'mov', 'avi'])): ?>
+                                    <video src="<?php echo htmlspecialchars($row['preview_path']); ?>" muted loop onmouseover="this.play()" onmouseout="this.pause()" style="width:80px; height:50px; object-fit:cover; border-radius:8px;"></video>
+                                <?php else: ?>
+                                    <img src="<?php echo htmlspecialchars($row['preview_path'] ?: 'img/auth_header_geo.png'); ?>" style="width:80px; height:50px; object-fit:cover; border-radius:8px;">
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </td>
                         <td style="font-weight: 600;"><?php echo htmlspecialchars($row['title']); ?></td>
                         <td style="color: #aaa;"><?php echo htmlspecialchars($row['username']); ?></td>
                         <td><span class="status-pill status-<?php echo $row['status']; ?>"><?php echo $row['status']; ?></span></td>
-                        <td style="font-weight: 600;">$<?php echo number_format($row['price'], 2); ?></td>
+                        <td style="font-weight: 600;">₹<?php echo number_format($row['price'], 2); ?></td>
                         <td>
                             <div style="display:flex; gap:10px; align-items:center; justify-content: flex-end;">
                                 <a href="admin_delete_asset.php?id=<?php echo $row['id']; ?>" class="btn-primary" style="padding:8px 16px; font-size:12px; background:#ff4444; text-decoration:none; border-radius:8px; font-weight:bold; margin-top: 0; width: auto; box-shadow: none;">Delete</a>

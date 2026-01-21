@@ -1,15 +1,6 @@
 <?php
-// Ensure admin pic is set if this is the admin
-if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    $current_id = $_SESSION['user_id'];
-    $conn->query("UPDATE users SET profile_pic = 'img/admin_profile.jpg' WHERE id = $current_id AND (profile_pic IS NULL OR profile_pic = '' OR profile_pic = 'default_avatar.png')");
-    
-    // Refresh session data if needed
-    if (empty($_SESSION['profile_pic']) || $_SESSION['profile_pic'] === 'default_avatar.png') {
-        $u_data = $conn->query("SELECT profile_pic FROM users WHERE id = $current_id")->fetch_assoc();
-        $_SESSION['profile_pic'] = $u_data['profile_pic'];
-    }
-}
+// Default animated avatar for all users
+$default_avatar = 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzMydmdkeXVqamc0N2RuanJmcHAwczF3eWt5b2g3b3V4cDd1OXNqcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jNJW9Bj6vVXIERUgK3/giphy.gif';
 ?>
 <aside class="sidebar">
     <a href="welcome.php" class="sidebar-logo">
@@ -46,11 +37,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
             <ion-icon name="folder-outline"></ion-icon>
             <span>Categories</span>
         </a>
-        <a href="#" class="nav-link">
+        <a href="admin_transactions.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'admin_transactions.php' ? 'active' : ''; ?>">
             <ion-icon name="card-outline"></ion-icon>
             <span>Transactions</span>
         </a>
-        <a href="#" class="nav-link">
+        <a href="admin_tutorials.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'admin_tutorials.php' ? 'active' : ''; ?>">
+            <ion-icon name="play-circle-outline"></ion-icon>
+            <span>Tutorials</span>
+        </a>
+        <a href="admin_settings.php" class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'admin_settings.php' ? 'active' : ''; ?>">
             <ion-icon name="settings-outline"></ion-icon>
             <span>Settings</span>
         </a>
@@ -59,13 +54,12 @@ if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; gap: 15px;">
         <div style="display: flex; align-items: center; gap: 12px; padding: 0 10px;">
             <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--accent-color); overflow: hidden; border: 2px solid rgba(138, 43, 226, 0.3);">
-                <?php if (isset($_SESSION['profile_pic']) && !empty($_SESSION['profile_pic'])): ?>
-                    <img src="<?php echo htmlspecialchars($_SESSION['profile_pic']); ?>" style="width: 100%; height: 100%; object-fit: cover;">
-                <?php else: ?>
-                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
-                        <?php echo strtoupper(substr($_SESSION['username'] ?? 'A', 0, 1)); ?>
-                    </div>
-                <?php endif; ?>
+                <?php 
+                    $profile_img = (isset($_SESSION['profile_pic']) && !empty($_SESSION['profile_pic']) && $_SESSION['profile_pic'] !== 'default_avatar.png' && $_SESSION['profile_pic'] !== 'img/admin_profile.jpg') 
+                                   ? $_SESSION['profile_pic'] 
+                                   : 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzMydmdkeXVqamc0N2RuanJmcHAwczF3eWt5b2g3b3V4cDd1OXNqcSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jNJW9Bj6vVXIERUgK3/giphy.gif'; 
+                ?>
+                <img src="<?php echo htmlspecialchars($profile_img); ?>" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
             <div style="overflow: hidden;">
                 <div style="font-size: 13px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?></div>

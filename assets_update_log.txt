@@ -1,0 +1,7 @@
+Update Results:
+ID: 4 | Path: img/dust_particles.png | Result: Success
+ID: 5 | Path: img/lens_flares.png | Result: Success
+ID: 6 | Path: img/glitch_displacement.png | Result: Success
+ID: 7 | Path: img/modern_zooms.png | Result: Success
+ID: 8 | Path: img/teal_orange_grade.png | Result: Success
+ID: 9 | Path: img/teal_orange_grade.png | Result: Success

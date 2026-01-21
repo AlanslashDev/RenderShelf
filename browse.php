@@ -52,6 +52,11 @@ $stmt->close();
 // Get Categories for Sidebar/Filter
 $cat_result = $conn->query("SELECT * FROM categories WHERE type='asset'");
 $categories = $cat_result->fetch_all(MYSQLI_ASSOC);
+
+// Profile logic
+$profile_img = (!empty($_SESSION['profile_pic']) && file_exists($_SESSION['profile_pic'])) 
+                ? $_SESSION['profile_pic'] 
+                : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -64,40 +69,48 @@ $categories = $cat_result->fetch_all(MYSQLI_ASSOC);
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="studio-container">
         
         <!-- Header -->
-        <header class="dash-header">
+        <header class="dash-header" style="border:none; margin-bottom: 20px;">
             <div class="logo-container">
-                <div class="logo-icon" style="width:30px; height:30px; font-size: 18px;">
-                    <ion-icon name="layers"></ion-icon>
-                </div>
-                <h2 style="color:white; margin:0; letter-spacing: -0.5px;">RenderShelf</h2>
+                <a href="welcome.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <div class="logo-icon" style="width:30px; height:30px; font-size: 18px;">
+                        <ion-icon name="layers"></ion-icon>
+                    </div>
+                    <h2 style="color:white; margin:0; letter-spacing: -0.5px; font-size: 20px;">RenderShelf</h2>
+                </a>
             </div>
             <div class="header-right">
-                <a href="wallet.php" class="wallet-pill">
+                <?php if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin'): ?>
+                <a href="wallet.php" class="wallet-pill" style="margin:0;">
                     <ion-icon name="wallet-outline"></ion-icon>
-                    $<?php echo number_format($_SESSION['wallet_balance'] ?? 0, 2); ?>
+                    ₹<?php echo number_format($_SESSION['wallet_balance'] ?? 0, 2); ?>
                 </a>
+                <?php endif; ?>
                 <div class="header-icons">
                     <a href="notifications.php"><ion-icon name="notifications-outline"></ion-icon></a>
                     <a href="cart.php" style="color:inherit;"><ion-icon name="cart-outline"></ion-icon></a>
-                    <div class="avatar" style="background:var(--accent-color); color:white; display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer;" onclick="location.href='profile.php'">
-                        <?php echo strtoupper(substr($username, 0, 1)); ?>
-                    </div>
+                    <a href="profile.php" class="avatar" style="width: 36px; height: 36px; background:var(--accent-color); color:white; display:flex; justify-content:center; align-items:center; font-weight:bold; cursor:pointer; overflow:hidden;">
+                        <?php if ($profile_img): ?>
+                            <img src="<?php echo htmlspecialchars($profile_img); ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                        <?php else: ?>
+                            <ion-icon name="person"></ion-icon>
+                        <?php endif; ?>
+                    </a>
                 </div>
             </div>
         </header>
 
         <!-- Search Bar -->
-        <form action="" method="GET" class="search-bar-container">
+        <form action="" method="GET" class="search-bar-container" style="margin-bottom: 30px;">
             <ion-icon name="search-outline" class="search-icon"></ion-icon>
-            <input type="text" name="search" placeholder="Search for transitions, LUTs..." value="<?php echo htmlspecialchars($search_query); ?>">
+            <input type="text" name="search" placeholder="Search for transitions, LUTs, assets..." value="<?php echo htmlspecialchars($search_query); ?>" style="border-radius: 16px;">
             <button type="submit" class="search-submit-btn"><ion-icon name="arrow-forward-outline"></ion-icon></button>
         </form>
 
         <!-- Filter Tabs -->
-        <div class="filter-tabs">
+        <div class="filter-tabs" style="margin-top: 20px; margin-bottom: 40px; justify-content: flex-start; gap: 10px;">
             <a href="?category=all" class="tab-pill <?php echo $category_filter == 'all' ? 'active' : ''; ?>">All</a>
             <?php foreach ($categories as $cat): ?>
                 <a href="?category=<?php echo urlencode($cat['name']); ?>" class="tab-pill <?php echo $category_filter == $cat['name'] ? 'active' : ''; ?>">
@@ -106,11 +119,11 @@ $categories = $cat_result->fetch_all(MYSQLI_ASSOC);
             <?php endforeach; ?>
         </div>
 
-        <!-- Asset Grid -->
         <div class="section-header">
-            <div class="section-title">
+            <h3 class="section-title">
                 <?php echo $category_filter === 'all' ? 'All Assets' : htmlspecialchars($category_filter); ?>
-            </div>
+            </h3>
+            <span style="font-size: 14px; color: #555; font-weight: 600;"><?php echo count($assets); ?> results found</span>
         </div>
 
         <?php if (count($assets) > 0): ?>
@@ -118,21 +131,36 @@ $categories = $cat_result->fetch_all(MYSQLI_ASSOC);
                 <?php foreach ($assets as $asset): ?>
                     <a href="asset_details.php?id=<?php echo $asset['id']; ?>" class="asset-card" style="text-decoration:none; color:inherit;">
                         <div class="asset-thumb">
-                            <?php if (isset($asset['thumbnail_path']) && $asset['thumbnail_path']): ?>
-                                <img src="<?php echo htmlspecialchars($asset['thumbnail_path']); ?>" style="width:100%; height:100%; object-fit:cover;">
-                            <?php elseif ($asset['preview_path']): ?>
-                                <!-- Check if video or image (simple check) -->
-                                <?php $ext = pathinfo($asset['preview_path'], PATHINFO_EXTENSION); ?>
-                                <?php if (in_array(strtolower($ext), ['mp4', 'webm'])): ?>
-                                    <video src="<?php echo htmlspecialchars($asset['preview_path']); ?>" muted loop onmouseover="this.play()" onmouseout="this.pause()" style="width:100%; height:100%; object-fit:cover;"></video>
-                                <?php else: ?>
-                                    <img src="<?php echo htmlspecialchars($asset['preview_path']); ?>" style="width:100%; height:100%; object-fit:cover;">
-                                <?php endif; ?>
+                            <?php 
+                                $preview_path = $asset['preview_path'];
+                                $thumb_path = $asset['thumbnail_path'] ?? '';
+                                $ext = pathinfo($preview_path, PATHINFO_EXTENSION);
+                                $is_video = in_array(strtolower($ext), ['mp4', 'webm', 'mov', 'avi']);
+                                $is_audio = in_array(strtolower($ext), ['mp3', 'wav', 'ogg', 'm4a']);
+                            ?>
+                            <?php if ($is_video): ?>
+                                <video src="<?php echo htmlspecialchars($preview_path); ?>" 
+                                       poster="<?php echo htmlspecialchars($thumb_path ?: ''); ?>" 
+                                       muted loop playsinline
+                                       onmouseover="this.play()" 
+                                       onmouseout="this.pause()" 
+                                       style="width:100%; height:100%; object-fit:cover;"></video>
+                            <?php elseif ($is_audio): ?>
+                                <div style="width:100%; height:100%; background: linear-gradient(45deg, #1a1a1d, #222); display:flex; align-items:center; justify-content:center; position:relative;">
+                                    <?php if($thumb_path): ?>
+                                        <img src="<?php echo htmlspecialchars($thumb_path); ?>" style="width:100%; height:100%; object-fit:cover; opacity: 0.4;">
+                                    <?php endif; ?>
+                                    <div style="position:absolute; font-size: 32px; color: var(--accent-color); filter: drop-shadow(0 0 10px rgba(138,43,226,0.5));">
+                                        <ion-icon name="musical-notes"></ion-icon>
+                                    </div>
+                                </div>
+                            <?php elseif ($thumb_path || $preview_path): ?>
+                                <img src="<?php echo htmlspecialchars($thumb_path ?: $preview_path); ?>" style="width:100%; height:100%; object-fit:cover;">
                             <?php else: ?>
                                 <div style="width:100%; height:100%; background: linear-gradient(to bottom, #333, #111);"></div>
                             <?php endif; ?>
                             
-                            <span class="price-tag"><?php echo $asset['price'] > 0 ? '$' . $asset['price'] : 'FREE'; ?></span>
+                            <span class="price-tag"><?php echo $asset['price'] > 0 ? '₹' . number_format($asset['price'], 2) : 'Free'; ?></span>
                         </div>
                         <div class="asset-info">
                             <div class="asset-title"><?php echo htmlspecialchars($asset['title']); ?></div>

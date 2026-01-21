@@ -33,7 +33,7 @@ $tutorials = $conn->query("SELECT t.*, c.name as category_name FROM tutorials t 
         <div class="asset-grid" style="margin-top:20px;">
             <?php if ($tutorials->num_rows > 0): ?>
                 <?php while($tut = $tutorials->fetch_assoc()): ?>
-                    <div class="learning-card" style="width:100%;">
+                    <a href="<?php echo htmlspecialchars($tut['video_url']); ?>" target="_blank" class="learning-card" style="width:100%; text-decoration:none; color:inherit;">
                         <div class="thumb-box" style="background:#111; position:relative; overflow:hidden;">
                             <?php if ($tut['thumbnail_path']): ?>
                                 <img src="<?php echo htmlspecialchars($tut['thumbnail_path']); ?>" style="width:100%; height:100%; object-fit:cover;">
@@ -46,9 +46,13 @@ $tutorials = $conn->query("SELECT t.*, c.name as category_name FROM tutorials t 
                                 <ion-icon name="play-circle" style="font-size:48px; color:white;"></ion-icon>
                             </div>
                         </div>
-                        <div class="card-title"><?php echo htmlspecialchars($tut['title']); ?></div>
+                        <div class="card-title" style="margin-top:10px;"><?php echo htmlspecialchars($tut['title']); ?></div>
                         <div class="card-author">By <?php echo htmlspecialchars($tut['author_name']); ?> • <?php echo htmlspecialchars($tut['category_name']); ?></div>
-                    </div>
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:10px; color:#555;">Tutorial Session</span>
+                            <a href="browse.php?category=<?php echo urlencode($tut['category_name']); ?>" style="font-size:10px; color:var(--accent-color); text-decoration:none; font-weight:700;">Browse Related Assets →</a>
+                        </div>
+                    </a>
                 <?php endwhile; ?>
             <?php else: ?>
                 <!-- Placeholder content if empty -->
@@ -59,14 +63,6 @@ $tutorials = $conn->query("SELECT t.*, c.name as category_name FROM tutorials t 
                     </div>
                     <div class="card-title">Mastering DaVinci Resolve</div>
                     <div class="card-author">By Sarah J.</div>
-                </div>
-                <div class="learning-card">
-                    <div class="thumb-box" style="background: #222;">
-                        <div style="width:100%; height:100%; background: linear-gradient(45deg, #134e5e 0%, #71b280 100%);"></div>
-                        <span class="duration-badge">08:30</span>
-                    </div>
-                    <div class="card-title">Sound Design Basics</div>
-                    <div class="card-author">By AudioLab</div>
                 </div>
                 <div class="learning-card">
                     <div class="thumb-box" style="background: #222;">

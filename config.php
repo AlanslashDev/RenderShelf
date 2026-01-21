@@ -68,8 +68,45 @@ $conn->query("CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 )");
 
+// Auto-Migration Check for tutorials table
+$conn->query("CREATE TABLE IF NOT EXISTS tutorials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    author_name VARCHAR(255) NOT NULL,
+    duration VARCHAR(50),
+    video_url TEXT NOT NULL,
+    category_id INT,
+    thumbnail_path VARCHAR(255),
+    related_asset_id INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+)");
+
+// Check for missing related_asset_id in tutorials
+$tut_col_chk = $conn->query("SHOW COLUMNS FROM tutorials LIKE 'related_asset_id'");
+if ($tut_col_chk && $tut_col_chk->num_rows == 0) {
+    $conn->query("ALTER TABLE tutorials ADD COLUMN related_asset_id INT DEFAULT NULL AFTER thumbnail_path");
+}
+
 // Start session securely
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+// Load Global Platform Settings
+if (!isset($_SESSION['platform_settings']) || isset($_GET['refresh_cache'])) {
+    $set_res = $conn->query("SELECT setting_key, setting_value FROM settings");
+    $platform_settings = [];
+    if($set_res) {
+        while($s_row = $set_res->fetch_assoc()) {
+            $platform_settings[$s_row['setting_key']] = $s_row['setting_value'];
+        }
+        $_SESSION['platform_settings'] = $platform_settings;
+    }
+}
+
+// Helper to get settings
+function get_setting($key, $default = '') {
+    return $_SESSION['platform_settings'][$key] ?? $default;
 }
 

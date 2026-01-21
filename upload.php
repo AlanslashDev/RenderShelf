@@ -36,37 +36,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Basic Validation
         if ($asset_file && $preview_file && $asset_file['error'] == 0 && $preview_file['error'] == 0) {
-        
-        $asset_path = $upload_dir . time() . '_' . basename($asset_file['name']);
-        $preview_path = $preview_dir . time() . '_' . basename($preview_file['name']);
-        
-        // Handle Thumbnail
-        $thumbnail_path = null;
-        if ($thumbnail_file && $thumbnail_file['error'] == 0) {
-            $thumbnail_path = $thumb_dir . time() . '_thumb_' . basename($thumbnail_file['name']);
-            move_uploaded_file($thumbnail_file['tmp_name'], $thumbnail_path);
-        }
+            
+            $allowed_asset = ['zip', 'rar', '7z'];
+            $allowed_preview_video = ['mp4', 'webm', 'mov'];
+            $allowed_preview_audio = ['mp3', 'wav', 'ogg'];
+            $allowed_thumb = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            
+            $asset_ext = strtolower(pathinfo($asset_file['name'], PATHINFO_EXTENSION));
+            $preview_ext = strtolower(pathinfo($preview_file['name'], PATHINFO_EXTENSION));
+            
+            // Check Category to decide preview validation
+            $cat_check = $conn->prepare("SELECT name FROM categories WHERE id = ?");
+            $cat_check->bind_param("i", $category_id);
+            $cat_check->execute();
+            $cat_name = strtolower($cat_check->get_result()->fetch_assoc()['name'] ?? '');
+            $is_audio_cat = (strpos($cat_name, 'music') !== false || strpos($cat_name, 'audio') !== false || strpos($cat_name, 'sound') !== false || strpos($cat_name, 'sfx') !== false);
 
-        if (move_uploaded_file($asset_file['tmp_name'], $asset_path) && 
-            move_uploaded_file($preview_file['tmp_name'], $preview_path)) {
-            
-            // Insert into Database
-            // Note: thumbnail_path might be null if not uploaded (optional?), but request implies "add option". 
-            // We'll treat it as optional or required? Let's make it optional but recommended.
-            $stmt = $conn->prepare("INSERT INTO assets (creator_id, title, description, category_id, price, file_path, preview_path, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issidsss", $creator_id, $title, $description, $category_id, $price, $asset_path, $preview_path, $thumbnail_path);
-            
-            if ($stmt->execute()) {
-                $success = "Asset uploaded successfully! Pending approval.";
+            $max_asset_size = 100 * 1024 * 1024; // 100MB
+            $max_preview_size = 50 * 1024 * 1024; // 50MB
+
+            if ($is_audio_cat && !in_array($preview_ext, $allowed_preview_audio)) {
+                $error = "Invalid audio preview format. Only MP3, WAV, or OGG allowed.";
+            } elseif (!$is_audio_cat && !in_array($preview_ext, $allowed_preview_video)) {
+                $error = "Invalid video preview format. Only MP4, WEBM, or MOV allowed.";
+            } elseif ($asset_file['size'] > $max_asset_size) {
+                $error = "Asset file too large. Max 100MB allowed.";
+            } elseif ($preview_file['size'] > $max_preview_size) {
+                $error = "Preview file too large. Max 50MB allowed.";
             } else {
-                $error = "Database Error: " . $conn->error;
+                $asset_path = $upload_dir . time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($asset_file['name']));
+                $preview_path = $preview_dir . time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($preview_file['name']));
+                
+                // Handle Thumbnail
+                $thumbnail_path = null;
+                if ($thumbnail_file && $thumbnail_file['error'] == 0) {
+                    $thumb_ext = strtolower(pathinfo($thumbnail_file['name'], PATHINFO_EXTENSION));
+                    if (in_array($thumb_ext, $allowed_thumb)) {
+                        $thumbnail_path = $thumb_dir . time() . '_thumb_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($thumbnail_file['name']));
+                        move_uploaded_file($thumbnail_file['tmp_name'], $thumbnail_path);
+                    }
+                }
+
+                if (move_uploaded_file($asset_file['tmp_name'], $asset_path) && 
+                    move_uploaded_file($preview_file['tmp_name'], $preview_path)) {
+                    
+                    $stmt = $conn->prepare("INSERT INTO assets (creator_id, title, description, category_id, price, file_path, preview_path, thumbnail_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("issidsss", $creator_id, $title, $description, $category_id, $price, $asset_path, $preview_path, $thumbnail_path);
+                    
+                    if ($stmt->execute()) {
+                        $success = "Asset uploaded successfully! Pending approval.";
+                    } else {
+                        $error = "Database Error: " . $conn->error;
+                    }
+                } else {
+                    $error = "Failed to move uploaded files.";
+                }
             }
         } else {
-            $error = "Failed to move uploaded files.";
+            $error = "Please select both an asset file and a preview file.";
         }
-    } else {
-        $error = "Please select both an asset file and a preview file.";
-    }
     }
 }
 ?>
@@ -76,90 +104,161 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Asset - RenderShelf</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="studio-container">
         
-        <header class="dash-header">
-            <div class="logo-area" style="margin:0;">
-                <a href="welcome.php" style="color:white; text-decoration:none;"><h3><ion-icon name="arrow-back-outline"></ion-icon> Back</h3></a>
+        <header class="dash-header" style="border:none; margin-bottom: 20px;">
+            <div class="logo-container">
+                <a href="welcome.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                    <div class="logo-icon" style="width:30px; height:30px; font-size: 18px;">
+                        <ion-icon name="layers"></ion-icon>
+                    </div>
+                    <h2 style="color:white; margin:0; letter-spacing: -0.5px; font-size: 20px;">RenderShelf</h2>
+                </a>
             </div>
-            <h2>Upload Asset</h2>
+            <div class="header-right">
+                <div class="header-icons">
+                    <a href="notifications.php"><ion-icon name="notifications-outline"></ion-icon></a>
+                </div>
+            </div>
         </header>
 
-        <div class="auth-card" style="width:100%; max-width:800px; margin:40px auto; padding:30px;">
+        <a href="manage_uploads.php" class="back-btn">
+            <ion-icon name="arrow-back"></ion-icon> Back to Studio
+        </a>
+
+        <div class="section-header" style="margin-bottom: 20px;">
+            <h3 class="section-title" style="font-size: 24px;">New Upload</h3>
+        </div>
+
+        <div class="glass-form-card" style="max-width: 800px; margin: 40px auto;">
+            <div class="form-header">
+                <h2>Upload New Asset</h2>
+                <p>Share your creative work with the RenderShelf community.</p>
+            </div>
+
             <?php if ($success): ?>
-                <div class="success-message"><?php echo $success; ?></div>
+                <div class="success-message" style="margin-bottom: 25px;"><?php echo $success; ?></div>
             <?php endif; ?>
             <?php if ($error): ?>
-                <div class="error-message"><?php echo $error; ?></div>
+                <div class="error-message" style="margin-bottom: 25px;"><?php echo $error; ?></div>
             <?php endif; ?>
 
             <form action="" method="POST" enctype="multipart/form-data">
                 
-                <div class="form-group">
-                    <label>Asset Title</label>
-                    <input type="text" name="title" required placeholder="e.g. Cinematic LUT Pack Vol. 1">
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label class="label-text">Asset Title</label>
+                    <input type="text" name="title" class="input-field" required placeholder="e.g. Cinematic LUT Pack Vol. 1">
                 </div>
 
-                <div class="form-group">
-                    <label>Description</label>
-                    <textarea name="description" rows="4" style="width:100%; background:#2a2a2a; border:none; color:white; padding:10px; border-radius:8px;" placeholder="Describe your asset..."></textarea>
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label class="label-text">Description</label>
+                    <textarea name="description" rows="4" class="input-field" style="resize: vertical; min-height: 100px;" placeholder="Describe your asset, features, and how to use it..."></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label>Category</label>
-                    <select name="category_id" style="width:100%; padding:10px; background:#2a2a2a; color:white; border:none; border-radius:8px;">
-                        <?php
-                        $cats = $conn->query("SELECT * FROM categories WHERE type='asset'");
-                        while($row = $cats->fetch_assoc()) {
-                            echo "<option value='".$row['id']."'>".$row['name']."</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Price ($)</label>
-                    <input type="number" name="price" step="0.01" min="0" value="0.00" required>
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="studio-form-grid">
                     <div class="form-group">
-                        <label>Asset File (ZIP/RAR)</label>
-                        <div style="background:#2a2a2a; padding:15px; border-radius:8px; text-align:center; border:2px dashed #444;">
-                            <ion-icon name="folder-zip-outline" style="font-size:32px; color:#aaa;"></ion-icon>
-                            <input type="file" name="asset_file" required style="display:block; margin:10px auto; width:90%;">
+                        <label class="label-text">Category</label>
+                        <select name="category_id" class="input-field">
+                            <?php
+                            $cats = $conn->query("SELECT * FROM categories WHERE type='asset'");
+                            while($row = $cats->fetch_assoc()) {
+                                echo "<option value='".$row['id']."'>".$row['name']."</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="label-text">Price (₹)</label>
+                        <input type="number" name="price" step="0.01" min="0" value="0.00" class="input-field" required>
+                    </div>
+                </div>
+
+                <div class="studio-form-grid">
+                    <div class="form-group">
+                        <label class="label-text">Asset File</label>
+                        <div class="upload-zone" id="asset-upload-zone">
+                            <ion-icon name="cloud-upload-outline"></ion-icon>
+                            <span class="upload-text-main">Click or Drag File</span>
+                            <span class="upload-text-sub">Upload any format (Max 100MB)</span>
+                            <input type="file" name="asset_file" required onchange="updateFileName(this, 'asset-upload-zone')">
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label>Preview File (Video/Image)</label>
-                        <div style="background:#2a2a2a; padding:15px; border-radius:8px; text-align:center; border:2px dashed #444;">
-                            <ion-icon name="images-outline" style="font-size:32px; color:#aaa;"></ion-icon>
-                            <input type="file" name="preview_file" required style="display:block; margin:10px auto; width:90%;" accept="image/*,video/*">
-                            <small style="color:#777; display:block; margin-top:5px;">Main preview shown on details page</small>
+                        <label class="label-text" id="preview-label">Preview Video</label>
+                        <div class="upload-zone" id="preview-upload-zone">
+                            <ion-icon name="videocam-outline" id="preview-icon"></ion-icon>
+                            <span class="upload-text-main" id="preview-text-main">Drop Video Here</span>
+                            <span class="upload-text-sub" id="preview-text-sub">Required: MP4 or WEBM format</span>
+                            <input type="file" name="preview_file" id="preview_input" required accept="video/*" onchange="updateFileName(this, 'preview-upload-zone')">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top:20px;">
-                    <label>Cover Image (Thumbnail) <span style="font-size:12px; color:#aaa;">(Optional, Recommended)</span></label>
-                    <div style="background:#2a2a2a; padding:15px; border-radius:8px; text-align:center; border:2px dashed #444;">
-                         <ion-icon name="image-outline" style="font-size:32px; color:#aaa;"></ion-icon>
-                        <input type="file" name="thumbnail_file" accept="image/*" style="display:block; margin:10px auto; width:90%;">
-                        <small style="color:#777; display:block; margin-top:5px;">Shown in store grid listing. If empty, preview will be used.</small>
+                <div class="form-group" style="margin-top: 25px;">
+                    <label class="label-text">Featured Thumbnail (Recommended)</label>
+                    <div class="upload-zone" id="thumb-upload-zone" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 20px; padding: 15px 30px;">
+                        <ion-icon name="image-outline" style="margin: 0; font-size: 32px;"></ion-icon>
+                        <div style="text-align: left;">
+                            <span class="upload-text-main" style="margin-bottom: 0;">Upload Cover Artwork</span>
+                            <span class="upload-text-sub">Standard 16:9 ratio works best</span>
+                        </div>
+                        <input type="file" name="thumbnail_file" accept="image/*" onchange="updateFileName(this, 'thumb-upload-zone')">
                     </div>
                 </div>
 
-
-                <button type="submit" class="btn-primary" style="margin-top:20px;">Upload Asset</button>
+                <button type="submit" class="btn-primary" style="margin-top: 40px; width: 100%; padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 800; letter-spacing: 0.5px;">
+                    Publish to RenderShelf
+                </button>
             </form>
         </div>
 
     </div>
+
+    <script>
+        function updateFileName(input, zoneId) {
+            const zone = document.getElementById(zoneId);
+            const textMain = zone.querySelector('.upload-text-main');
+            if (input.files && input.files.length > 0) {
+                textMain.textContent = input.files[0].name;
+                textMain.style.color = '#38ef7d';
+                zone.style.borderColor = '#38ef7d';
+            }
+        }
+
+        const categorySelect = document.querySelector('select[name="category_id"]');
+        const previewLabel = document.getElementById('preview-label');
+        const previewIcon = document.getElementById('preview-icon');
+        const previewTextMain = document.getElementById('preview-text-main');
+        const previewTextSub = document.getElementById('preview-text-sub');
+        const previewInput = document.getElementById('preview_input');
+
+        categorySelect.addEventListener('change', function() {
+            const selectedText = this.options[this.selectedIndex].text.toLowerCase();
+            const isAudio = selectedText.includes('music') || selectedText.includes('audio') || selectedText.includes('sound') || selectedText.includes('sfx');
+
+            if (isAudio) {
+                previewLabel.textContent = "Preview Audio";
+                previewIcon.setAttribute('name', 'musical-notes-outline');
+                previewTextMain.textContent = "Drop MP3 Here";
+                previewTextSub.textContent = "Required: MP3 or WAV format";
+                previewInput.setAttribute('accept', 'audio/*');
+            } else {
+                previewLabel.textContent = "Preview Video";
+                previewIcon.setAttribute('name', 'videocam-outline');
+                previewTextMain.textContent = "Drop Video Here";
+                previewTextSub.textContent = "Required: MP4 or WEBM format";
+                previewInput.setAttribute('accept', 'video/*');
+            }
+        });
+
+        // Trigger on load for initial value
+        categorySelect.dispatchEvent(new Event('change'));
+    </script>
 </body>
 </html>
