@@ -4,7 +4,8 @@
 if (file_exists(__DIR__ . '/.env')) {
     $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
-        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos(trim($line), '#') === 0)
+            continue;
         list($name, $value) = explode('=', $line, 2);
         $name = trim($name);
         $value = trim($value);
@@ -17,7 +18,7 @@ if (file_exists(__DIR__ . '/.env')) {
 }
 
 // Database configuration
-$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_host = getenv('DB_HOST') ?: '127.0.0.1';
 $db_user = getenv('DB_USER') ?: 'root';
 $db_pass = getenv('DB_PASS') ?: '';
 $db_name = getenv('DB_NAME') ?: 'rendershelf';
@@ -30,63 +31,17 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Create database if it doesn't exist
-$sql = "CREATE DATABASE IF NOT EXISTS $db_name";
-if ($conn->query($sql) === TRUE) {
+// Select database
+if (!$conn->select_db($db_name)) {
+    // If DB doesn't exist, try to create it once
+    $conn->query("CREATE DATABASE IF NOT EXISTS $db_name");
     $conn->select_db($db_name);
-} else {
-    // Silent fail or die if critical. For setup, die is okay, but ensure no whitespace before this file.
-    die("Error creating database: " . $conn->error);
 }
 
-// Auto-Migration Check for thumbnail_path
-$chk = $conn->query("SHOW TABLES LIKE 'assets'");
-if ($chk && $chk->num_rows > 0) {
-    $col_chk = $conn->query("SHOW COLUMNS FROM assets LIKE 'thumbnail_path'");
-    if ($col_chk && $col_chk->num_rows == 0) {
-        $conn->query("ALTER TABLE assets ADD COLUMN thumbnail_path VARCHAR(255) AFTER preview_path");
-    }
-}
-
-// Auto-Migration Check for role in users
-$u_chk = $conn->query("SHOW TABLES LIKE 'users'");
-if ($u_chk && $u_chk->num_rows > 0) {
-    $r_chk = $conn->query("SHOW COLUMNS FROM users LIKE 'role'");
-    if ($r_chk && $r_chk->num_rows == 0) {
-        $conn->query("ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user' AFTER password_hash");
-    }
-}
-
-// Auto-Migration Check for notifications table
-$conn->query("CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    message TEXT NOT NULL,
-    type ENUM('info', 'alert', 'success', 'warning') DEFAULT 'info',
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-)");
-
-// Auto-Migration Check for tutorials table
-$conn->query("CREATE TABLE IF NOT EXISTS tutorials (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    author_name VARCHAR(255) NOT NULL,
-    duration VARCHAR(50),
-    video_url TEXT NOT NULL,
-    category_id INT,
-    thumbnail_path VARCHAR(255),
-    related_asset_id INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
-)");
-
-// Check for missing related_asset_id in tutorials
-$tut_col_chk = $conn->query("SHOW COLUMNS FROM tutorials LIKE 'related_asset_id'");
-if ($tut_col_chk && $tut_col_chk->num_rows == 0) {
-    $conn->query("ALTER TABLE tutorials ADD COLUMN related_asset_id INT DEFAULT NULL AFTER thumbnail_path");
-}
+/* 
+// AUTO-MIGRATIONS DISABLED FOR PERFORMANCE
+// Run setup_db.php manually if tables are missing.
+*/
 
 // Start session securely
 if (session_status() === PHP_SESSION_NONE) {
@@ -97,16 +52,29 @@ if (session_status() === PHP_SESSION_NONE) {
 if (!isset($_SESSION['platform_settings']) || isset($_GET['refresh_cache'])) {
     $set_res = $conn->query("SELECT setting_key, setting_value FROM settings");
     $platform_settings = [];
-    if($set_res) {
-        while($s_row = $set_res->fetch_assoc()) {
+    if ($set_res) {
+        while ($s_row = $set_res->fetch_assoc()) {
             $platform_settings[$s_row['setting_key']] = $s_row['setting_value'];
         }
         $_SESSION['platform_settings'] = $platform_settings;
     }
 }
 
+// FORCE SYNC: Ensure Session Role matches Database Role (Fixes "Access Denied" after promotion)
+if (isset($_SESSION['user_id'])) {
+    $uid_sync = (int) $_SESSION['user_id'];
+    $role_query = $conn->query("SELECT role FROM users WHERE id = $uid_sync");
+    if ($role_query && $role_query->num_rows > 0) {
+        $synced_role = $role_query->fetch_assoc()['role'];
+        if ($_SESSION['role'] !== $synced_role) {
+            $_SESSION['role'] = $synced_role;
+        }
+    }
+}
+
 // Helper to get settings
-function get_setting($key, $default = '') {
+function get_setting($key, $default = '')
+{
     return $_SESSION['platform_settings'][$key] ?? $default;
 }
 

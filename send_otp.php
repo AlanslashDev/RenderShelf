@@ -13,47 +13,47 @@ header('Content-Type: application/json');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    
+
     if (empty($email)) {
         echo json_encode(['success' => false, 'message' => 'Please enter your email']);
         exit;
     }
-    
+
     // Check if email exists
     $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $stmt->store_result();
-    
+
     if ($stmt->num_rows > 0) {
         // Generate 6-digit OTP
         $otp = sprintf("%06d", mt_rand(100000, 999999));
         $expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
-        
+
         // Delete old OTPs for this email
         $deleteStmt = $conn->prepare("DELETE FROM password_resets WHERE email = ?");
         $deleteStmt->bind_param("s", $email);
         $deleteStmt->execute();
         $deleteStmt->close();
-        
+
         // Store OTP in database
         $insertStmt = $conn->prepare("INSERT INTO password_resets (email, token, expiry) VALUES (?, ?, ?)");
         $insertStmt->bind_param("sss", $email, $otp, $expiry);
-        
+
         if ($insertStmt->execute()) {
             // Send email using PHPMailer
             try {
                 $mail = new PHPMailer(true);
-                
+
                 // Server settings
                 $mail->SMTPDebug = 0; // Disable verbose debug output for production
                 $mail->isSMTP();
-                $mail->Host       = getenv('SMTP_HOST');
-                $mail->SMTPAuth   = true;
-                $mail->Username   = getenv('SMTP_USER');
-                $mail->Password   = getenv('SMTP_PASS');
+                $mail->Host = getenv('SMTP_HOST');
+                $mail->SMTPAuth = true;
+                $mail->Username = getenv('SMTP_USER');
+                $mail->Password = getenv('SMTP_PASS');
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                $mail->Port       = getenv('SMTP_PORT');
+                $mail->Port = getenv('SMTP_PORT');
                 $mail->SMTPOptions = array(
                     'ssl' => array(
                         'verify_peer' => false,
@@ -61,15 +61,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         'allow_self_signed' => true
                     )
                 );
-                
+
                 // Recipients
                 $mail->setFrom(getenv('SMTP_FROM_EMAIL'), getenv('SMTP_FROM_NAME'));
                 $mail->addAddress($email);
-                
+
                 // Content
                 $mail->isHTML(true);
                 $mail->Subject = 'Password Reset OTP - RenderShelf';
-                $mail->Body    = "<!DOCTYPE html>
+                $mail->Body = "<!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
@@ -106,11 +106,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </body>
 </html>";
                 $mail->AltBody = "Your RenderShelf password reset OTP is: $otp\n\nThis OTP is valid for 15 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest regards,\nThe RenderShelf Team";
-                
+
                 $mail->send();
                 echo json_encode(['success' => true, 'message' => 'OTP sent successfully to your email']);
             } catch (Exception $e) {
-                echo json_encode(['success' => false, 'message' => 'Failed to send email: ' . $mail->ErrorInfo]);
+                // FALLBACK: Log OTP to file for local development/testing if email fails
+                $log_msg = "[" . date('Y-m-d H:i:s') . "] OTP for $email: $otp\n";
+                file_put_contents('otp_log.txt', $log_msg, FILE_APPEND);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Dev Mode: Email failed, but OTP was saved to otp_log.txt. Your OTP is: ' . $otp
+                ]);
             }
         } else {
             echo json_encode(['success' => false, 'message' => 'Error generating OTP']);

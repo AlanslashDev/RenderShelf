@@ -33,15 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING);
     $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
     $price = filter_input(INPUT_POST, 'price', FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
-    
+
     // File Upload Handling (Optional for Edit)
     $upload_dir = 'uploads/assets/';
     $preview_dir = 'uploads/previews/';
     $thumb_dir = 'uploads/thumbnails/';
 
-    if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-    if (!is_dir($preview_dir)) mkdir($preview_dir, 0777, true);
-    if (!is_dir($thumb_dir)) mkdir($thumb_dir, 0777, true);
+    if (!is_dir($upload_dir))
+        mkdir($upload_dir, 0777, true);
+    if (!is_dir($preview_dir))
+        mkdir($preview_dir, 0777, true);
+    if (!is_dir($thumb_dir))
+        mkdir($thumb_dir, 0777, true);
 
     $asset_path = $asset['file_path'];
     $preview_path = $asset['preview_path'];
@@ -51,13 +54,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $allowed_preview_video = ['mp4', 'webm', 'mov'];
     $allowed_preview_audio = ['mp3', 'wav', 'ogg'];
     $allowed_thumb = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-    
+
     // Check Category to decide preview validation
     $cat_check = $conn->prepare("SELECT name FROM categories WHERE id = ?");
     $cat_check->bind_param("i", $category_id);
     $cat_check->execute();
     $cat_name = strtolower($cat_check->get_result()->fetch_assoc()['name'] ?? '');
     $is_audio_cat = (strpos($cat_name, 'music') !== false || strpos($cat_name, 'audio') !== false || strpos($cat_name, 'sound') !== false || strpos($cat_name, 'sfx') !== false);
+    $no_preview_cat = (strpos($cat_name, 'lut') !== false || strpos($cat_name, 'sfx') !== false);
+
+    if ($no_preview_cat) {
+        $preview_path = '';
+    }
 
     $max_asset_size = 100 * 1024 * 1024;
     $max_preview_size = 50 * 1024 * 1024;
@@ -69,14 +77,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $new_asset_path = $upload_dir . time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($_FILES['asset_file']['name']));
             if (move_uploaded_file($_FILES['asset_file']['tmp_name'], $new_asset_path)) {
-                if ($asset_path && file_exists($asset_path)) @unlink($asset_path);
+                if ($asset_path && file_exists($asset_path))
+                    @unlink($asset_path);
                 $asset_path = $new_asset_path;
             }
         }
     }
 
     // Handle Preview File
-    if (empty($error) && isset($_FILES['preview_file']) && $_FILES['preview_file']['error'] == 0) {
+    if (empty($error) && !$no_preview_cat && isset($_FILES['preview_file']) && $_FILES['preview_file']['error'] == 0) {
         $preview_ext = strtolower(pathinfo($_FILES['preview_file']['name'], PATHINFO_EXTENSION));
         if ($is_audio_cat && !in_array($preview_ext, $allowed_preview_audio)) {
             $error = "Invalid audio preview format.";
@@ -87,7 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $new_preview_path = $preview_dir . time() . '_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($_FILES['preview_file']['name']));
             if (move_uploaded_file($_FILES['preview_file']['tmp_name'], $new_preview_path)) {
-                if ($preview_path && file_exists($preview_path)) @unlink($preview_path);
+                if ($preview_path && file_exists($preview_path))
+                    @unlink($preview_path);
                 $preview_path = $new_preview_path;
             }
         }
@@ -101,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $new_thumb_path = $thumb_dir . time() . '_thumb_' . preg_replace("/[^a-zA-Z0-9.]/", "_", basename($_FILES['thumbnail_file']['name']));
             if (move_uploaded_file($_FILES['thumbnail_file']['tmp_name'], $new_thumb_path)) {
-                if ($thumbnail_path && file_exists($thumbnail_path)) @unlink($thumbnail_path);
+                if ($thumbnail_path && file_exists($thumbnail_path))
+                    @unlink($thumbnail_path);
                 $thumbnail_path = $new_thumb_path;
             }
         }
@@ -109,10 +120,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if (empty($error)) {
         // Update Database
-        $status = 'pending'; 
-        $stmt = $conn->prepare("UPDATE assets SET title = ?, description = ?, category_id = ?, price = ?, file_path = ?, preview_path = ?, thumbnail_path = ?, status = ? WHERE id = ? AND creator_id = ?");
-        $stmt->bind_param("sssidssssi", $title, $description, $category_id, $price, $asset_path, $preview_path, $thumbnail_path, $status, $asset_id, $user_id);
-        
+        // Update Database
+        $is_approved = 0; // Reset to pending on edit
+        $stmt = $conn->prepare("UPDATE assets SET title = ?, description = ?, category_id = ?, price = ?, file_path = ?, preview_path = ?, thumbnail_path = ?, is_approved = ? WHERE id = ? AND creator_id = ?");
+        $stmt->bind_param("sssidsssii", $title, $description, $category_id, $price, $asset_path, $preview_path, $thumbnail_path, $is_approved, $asset_id, $user_id);
+
         if ($stmt->execute()) {
             $success = "Asset updated successfully! Pending re-approval.";
             // Refresh asset data for the form
@@ -131,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -139,9 +152,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
+
 <body>
     <div class="studio-container">
-        
+
         <header class="dash-header" style="border:none; margin-bottom: 20px;">
             <div class="logo-container">
                 <a href="welcome.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;">
@@ -180,15 +194,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php endif; ?>
 
             <form action="" method="POST" enctype="multipart/form-data">
-                
+
                 <div class="form-group" style="margin-bottom: 25px;">
                     <label class="label-text">Asset Title</label>
-                    <input type="text" name="title" class="input-field" required value="<?php echo htmlspecialchars($asset['title']); ?>">
+                    <input type="text" name="title" class="input-field" required
+                        value="<?php echo htmlspecialchars($asset['title']); ?>">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 25px;">
                     <label class="label-text">Description</label>
-                    <textarea name="description" rows="4" class="input-field" style="resize: vertical; min-height: 100px;"><?php echo htmlspecialchars($asset['description']); ?></textarea>
+                    <textarea name="description" rows="4" class="input-field"
+                        style="resize: vertical; min-height: 100px;"><?php echo htmlspecialchars($asset['description']); ?></textarea>
                 </div>
 
                 <div class="studio-form-grid">
@@ -197,22 +213,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <select name="category_id" class="input-field" style="appearance: none;">
                             <?php
                             $cats = $conn->query("SELECT * FROM categories WHERE type='asset'");
-                            while($row = $cats->fetch_assoc()) {
+                            while ($row = $cats->fetch_assoc()) {
                                 $selected = ($row['id'] == $asset['category_id']) ? 'selected' : '';
-                                echo "<option value='".$row['id']."' $selected>".$row['name']."</option>";
+                                echo "<option value='" . $row['id'] . "' $selected>" . $row['name'] . "</option>";
                             }
                             ?>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="label-text">Price (₹)</label>
-                        <input type="number" name="price" step="0.01" min="0" value="<?php echo number_format($asset['price'], 2, '.', ''); ?>" class="input-field" required>
+                        <input type="number" name="price" step="0.01" min="0"
+                            value="<?php echo number_format($asset['price'], 2, '.', ''); ?>" class="input-field"
+                            required>
                     </div>
                 </div>
 
                 <div class="studio-form-grid">
                     <div class="form-group">
-                        <label class="label-text">Update Asset File <small style="color:#555;">(Optional)</small></label>
+                        <label class="label-text">Update Asset File <small
+                                style="color:#555;">(Optional)</small></label>
                         <div class="upload-zone" id="asset-edit-zone">
                             <ion-icon name="cloud-upload-outline"></ion-icon>
                             <span class="upload-text-main">Replace Asset</span>
@@ -220,23 +239,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <input type="file" name="asset_file" onchange="updateFileName(this, 'asset-edit-zone')">
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label class="label-text" id="preview-label">Update Preview <small style="color:#555;">(Optional)</small></label>
+
+                    <div class="form-group" id="preview-group">
+                        <label class="label-text" id="preview-label">Update Preview <small
+                                style="color:#555;">(Optional)</small></label>
                         <div class="upload-zone" id="preview-edit-zone">
                             <ion-icon name="videocam-outline" id="preview-icon"></ion-icon>
                             <span class="upload-text-main" id="preview-text-main">Replace Video</span>
                             <span class="upload-text-sub" id="preview-text-sub">Video preview will be updated</span>
-                            <input type="file" name="preview_file" id="preview_input" accept="video/*" onchange="updateFileName(this, 'preview-edit-zone')">
+                            <input type="file" name="preview_file" id="preview_input" accept="video/*"
+                                onchange="updateFileName(this, 'preview-edit-zone')">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-top:25px;">
                     <label class="label-text">Update Thumbnail Image</label>
-                    <div class="upload-zone" id="thumb-edit-zone" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 20px; padding: 20px;">
+                    <div class="upload-zone" id="thumb-edit-zone"
+                        style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 20px; padding: 20px;">
                         <?php if ($asset['thumbnail_path']): ?>
-                            <img src="<?php echo htmlspecialchars($asset['thumbnail_path']); ?>" style="width:100px; height:60px; object-fit:cover; border-radius:8px; border: 2px solid rgba(255,255,255,0.1);">
+                            <img src="<?php echo htmlspecialchars($asset['thumbnail_path']); ?>"
+                                style="width:100px; height:60px; object-fit:cover; border-radius:8px; border: 2px solid rgba(255,255,255,0.1);">
                         <?php else: ?>
                             <ion-icon name="image-outline" style="margin: 0;"></ion-icon>
                         <?php endif; ?>
@@ -244,12 +267,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <span class="upload-text-main">Replace Cover</span>
                             <span class="upload-text-sub">Click to choose a new image</span>
                         </div>
-                        <input type="file" name="thumbnail_file" accept="image/*" onchange="updateFileName(this, 'thumb-edit-zone')">
+                        <input type="file" name="thumbnail_file" accept="image/*"
+                            onchange="updateFileName(this, 'thumb-edit-zone')">
                     </div>
                 </div>
 
 
-                <button type="submit" class="btn-primary" style="margin-top: 40px; width: 100%; padding: 18px; border-radius: 14px; font-size: 16px;">
+                <button type="submit" class="btn-primary"
+                    style="margin-top: 40px; width: 100%; padding: 18px; border-radius: 14px; font-size: 16px;">
                     Update Asset Status
                 </button>
             </form>
@@ -274,23 +299,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         const previewTextMain = document.getElementById('preview-text-main');
         const previewTextSub = document.getElementById('preview-text-sub');
         const previewInput = document.getElementById('preview_input');
+        const previewGroup = document.getElementById('preview-group');
+        const assetZone = document.getElementById('asset-edit-zone');
+        const assetGroup = assetZone.closest('.form-group');
 
-        categorySelect.addEventListener('change', function() {
+        categorySelect.addEventListener('change', function () {
             const selectedText = this.options[this.selectedIndex].text.toLowerCase();
             const isAudio = selectedText.includes('music') || selectedText.includes('audio') || selectedText.includes('sound') || selectedText.includes('sfx');
+            const noPreview = selectedText.includes('lut') || selectedText.includes('sfx');
 
-            if (isAudio) {
-                previewLabel.innerHTML = 'Update Preview <small style="color:#555;">(Optional)</small>';
-                previewIcon.setAttribute('name', 'musical-notes-outline');
-                previewTextMain.textContent = "Replace MP3";
-                previewTextSub.textContent = "MP3/Audio preview will be updated";
-                previewInput.setAttribute('accept', 'audio/*');
+            if (noPreview) {
+                previewGroup.style.display = 'none';
+                assetGroup.style.gridColumn = 'span 2';
             } else {
-                previewLabel.innerHTML = 'Update Preview <small style="color:#555;">(Optional)</small>';
-                previewIcon.setAttribute('name', 'videocam-outline');
-                previewTextMain.textContent = "Replace Video";
-                previewTextSub.textContent = "Video preview will be updated";
-                previewInput.setAttribute('accept', 'video/*');
+                previewGroup.style.display = 'block';
+                assetGroup.style.gridColumn = 'span 1';
+
+                if (isAudio) {
+                    previewLabel.innerHTML = 'Update Preview <small style="color:#555;">(Optional)</small>';
+                    previewIcon.setAttribute('name', 'musical-notes-outline');
+                    previewTextMain.textContent = "Replace MP3";
+                    previewTextSub.textContent = "MP3/Audio preview will be updated";
+                    previewInput.setAttribute('accept', 'audio/*');
+                } else {
+                    previewLabel.innerHTML = 'Update Preview <small style="color:#555;">(Optional)</small>';
+                    previewIcon.setAttribute('name', 'videocam-outline');
+                    previewTextMain.textContent = "Replace Video";
+                    previewTextSub.textContent = "Video preview will be updated";
+                    previewInput.setAttribute('accept', 'video/*');
+                }
             }
         });
 
@@ -298,4 +335,5 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         categorySelect.dispatchEvent(new Event('change'));
     </script>
 </body>
+
 </html>

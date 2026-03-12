@@ -20,7 +20,7 @@
     .sidebar {
         width: var(--admin-sidebar-width);
         background: #111114;
-        border-right: 1px solid rgba(255,255,255,0.05);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
         display: flex;
         flex-direction: column;
         padding: 30px 20px;
@@ -28,7 +28,7 @@
         left: 0;
         top: 0;
         height: 100vh;
-        z-index: 100;
+        z-index: 10000;
         box-sizing: border-box;
     }
 
@@ -71,7 +71,8 @@
         transition: all 0.2s;
     }
 
-    .nav-link:hover, .nav-link.active {
+    .nav-link:hover,
+    .nav-link.active {
         color: white;
         background: rgba(138, 43, 226, 0.1);
     }
@@ -90,7 +91,9 @@
     }
 
     @media (min-width: 1400px) {
-        .main-content { padding: 40px 60px; }
+        .main-content {
+            padding: 40px 60px;
+        }
     }
 
     .admin-header {
@@ -122,7 +125,7 @@
         background: #16161a;
         padding: 24px;
         border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.03);
+        border: 1px solid rgba(255, 255, 255, 0.03);
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -169,7 +172,7 @@
         background: #16161a;
         border-radius: 24px;
         padding: 30px;
-        border: 1px solid rgba(255,255,255,0.03);
+        border: 1px solid rgba(255, 255, 255, 0.03);
     }
 
     .box-header {
@@ -198,14 +201,14 @@
         text-transform: uppercase;
         font-weight: 700;
         letter-spacing: 1px;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .admin-table td {
         padding: 16px;
         font-size: 14px;
         color: #eee;
-        border-bottom: 1px solid rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
         vertical-align: middle;
     }
 
@@ -217,21 +220,36 @@
         text-transform: uppercase;
     }
 
-    .status-pending { background: rgba(255, 193, 7, 0.1); color: #ffc107; }
-    .status-approved { background: rgba(56, 239, 125, 0.1); color: #38ef7d; }
-    .status-rejected { background: rgba(255, 68, 68, 0.1); color: #ff4444; }
+    .status-pending {
+        background: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+
+    .status-approved {
+        background: rgba(56, 239, 125, 0.1);
+        color: #38ef7d;
+    }
+
+    .status-rejected {
+        background: rgba(255, 68, 68, 0.1);
+        color: #ff4444;
+    }
 
     @media (max-width: 1024px) {
         .dashboard-grid {
             grid-template-columns: 1fr;
         }
+
         .sidebar {
             width: 80px;
             padding: 30px 10px;
         }
-        .sidebar-logo span, .nav-link span {
+
+        .sidebar-logo span,
+        .nav-link span {
             display: none;
         }
+
         .main-content {
             margin-left: 80px;
             padding: 20px;

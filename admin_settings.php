@@ -12,13 +12,13 @@ $error = '';
 // Handle Save
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     foreach ($_POST['settings'] as $key => $value) {
-        $stmt = $conn->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
-        $stmt->bind_param("ss", $value, $key);
+        $stmt = $conn->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?");
+        $stmt->bind_param("sss", $key, $value, $value);
         $stmt->execute();
     }
     $msg = "Settings updated successfully.";
     unset($_SESSION['platform_settings']); // Clear cache for refresh
-    
+
     // Refresh local settings for display
     // (They will be re-fetched below)
 }
@@ -32,6 +32,7 @@ while ($row = $res->fetch_assoc()) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,12 +47,14 @@ while ($row = $res->fetch_assoc()) {
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
         }
+
         .settings-box {
             background: #111;
             border: 1px solid #222;
             padding: 25px;
             border-radius: 20px;
         }
+
         .settings-box h3 {
             margin-bottom: 20px;
             font-size: 16px;
@@ -60,9 +63,11 @@ while ($row = $res->fetch_assoc()) {
             align-items: center;
             gap: 10px;
         }
+
         .setting-group {
             margin-bottom: 20px;
         }
+
         .setting-group label {
             display: block;
             margin-bottom: 8px;
@@ -70,7 +75,9 @@ while ($row = $res->fetch_assoc()) {
             font-weight: 500;
             color: #aaa;
         }
-        .setting-group input, .setting-group select {
+
+        .setting-group input,
+        .setting-group select {
             width: 100%;
             padding: 12px;
             background: #0a0a0a;
@@ -79,9 +86,11 @@ while ($row = $res->fetch_assoc()) {
             border-radius: 10px;
             font-size: 14px;
         }
+
         .setting-group input:focus {
             border-color: var(--accent-color);
         }
+
         .setting-desc {
             font-size: 11px;
             color: #555;
@@ -89,6 +98,7 @@ while ($row = $res->fetch_assoc()) {
         }
     </style>
 </head>
+
 <body>
     <?php include 'includes/admin_sidebar.php'; ?>
 
@@ -110,48 +120,84 @@ while ($row = $res->fetch_assoc()) {
                     <!-- General Settings -->
                     <div class="settings-box">
                         <h3><ion-icon name="globe-outline"></ion-icon> General</h3>
-                        
+
                         <div class="setting-group">
                             <label>Site Name</label>
-                            <input type="text" name="settings[site_name]" value="<?php echo htmlspecialchars($settings['site_name'] ?? ''); ?>">
+                            <input type="text" name="settings[site_name]"
+                                value="<?php echo htmlspecialchars($settings['site_name'] ?? ''); ?>">
                         </div>
 
                         <div class="setting-group">
                             <label>Support Email</label>
-                            <input type="email" name="settings[support_email]" value="<?php echo htmlspecialchars($settings['support_email'] ?? ''); ?>">
+                            <input type="email" name="settings[support_email]"
+                                value="<?php echo htmlspecialchars($settings['support_email'] ?? ''); ?>">
                         </div>
 
                         <div class="setting-group">
                             <label>Currency Symbol</label>
-                            <input type="text" name="settings[currency_symbol]" value="<?php echo htmlspecialchars($settings['currency_symbol'] ?? '$'); ?>">
+                            <input type="text" name="settings[currency_symbol]"
+                                value="<?php echo htmlspecialchars($settings['currency_symbol'] ?? '$'); ?>">
                         </div>
                     </div>
 
                     <!-- Financial & Limits -->
                     <div class="settings-box">
                         <h3><ion-icon name="card-outline"></ion-icon> Financial & Limits</h3>
-                        
+
                         <div class="setting-group">
                             <label>Platform Fee (%)</label>
-                            <input type="number" name="settings[platform_fee]" value="<?php echo htmlspecialchars($settings['platform_fee'] ?? '10'); ?>">
+                            <input type="number" name="settings[platform_fee]"
+                                value="<?php echo htmlspecialchars($settings['platform_fee'] ?? '10'); ?>">
                             <div class="setting-desc">Percentage taken from each sale.</div>
                         </div>
 
                         <div class="setting-group">
+                            <label>Payment Gateway Test Mode</label>
+                            <select name="settings[payment_test_mode]">
+                                <option value="1" <?php echo (($settings['payment_test_mode'] ?? '1') == '1') ? 'selected' : ''; ?>>Enabled (Mock Cards Allowed)</option>
+                                <option value="0" <?php echo (($settings['payment_test_mode'] ?? '1') == '0') ? 'selected' : ''; ?>>Disabled (Strict Real)</option>
+                            </select>
+                            <div class="setting-desc">Allows using a test card to mock purchases. If disabled, fake
+                                cards will be rejected.</div>
+                        </div>
+
+                        <div class="setting-group">
                             <label>Max Upload Size (MB)</label>
-                            <input type="number" name="settings[max_upload_size]" value="<?php echo htmlspecialchars($settings['max_upload_size'] ?? '50'); ?>">
+                            <input type="number" name="settings[max_upload_size]"
+                                value="<?php echo htmlspecialchars($settings['max_upload_size'] ?? '50'); ?>">
+                        </div>
+                    </div>
+
+                    <!-- Payment Gateways -->
+                    <div class="settings-box">
+                        <h3><ion-icon name="wallet-outline"></ion-icon> Payment Gateways</h3>
+
+                        <div class="setting-group">
+                            <label>Razorpay Key ID</label>
+                            <input type="text" name="settings[razorpay_key_id]"
+                                value="<?php echo htmlspecialchars($settings['razorpay_key_id'] ?? ''); ?>"
+                                placeholder="rzp_test_XXXXXX">
+                        </div>
+
+                        <div class="setting-group">
+                            <label>Razorpay Key Secret</label>
+                            <input type="password" name="settings[razorpay_key_secret]"
+                                value="<?php echo htmlspecialchars($settings['razorpay_key_secret'] ?? ''); ?>"
+                                placeholder="Secret Key">
                         </div>
                     </div>
 
                     <!-- Platform Behavior -->
                     <div class="settings-box">
                         <h3><ion-icon name="options-outline"></ion-icon> Behavior</h3>
-                        
+
                         <div class="setting-group">
                             <label>Maintenance Mode</label>
                             <select name="settings[maintenance_mode]">
-                                <option value="0" <?php echo ($settings['maintenance_mode'] == '0') ? 'selected' : ''; ?>>Disabled (Live)</option>
-                                <option value="1" <?php echo ($settings['maintenance_mode'] == '1') ? 'selected' : ''; ?>>Enabled</option>
+                                <option value="0" <?php echo ($settings['maintenance_mode'] == '0') ? 'selected' : ''; ?>>
+                                    Disabled (Live)</option>
+                                <option value="1" <?php echo ($settings['maintenance_mode'] == '1') ? 'selected' : ''; ?>>
+                                    Enabled</option>
                             </select>
                         </div>
 
@@ -174,10 +220,12 @@ while ($row = $res->fetch_assoc()) {
                 </div>
 
                 <div style="margin-top: 30px;">
-                    <button type="submit" class="btn-primary" style="width:auto; padding:15px 40px; border-radius:15px;">Save All Changes</button>
+                    <button type="submit" class="btn-primary"
+                        style="width:auto; padding:15px 40px; border-radius:15px;">Save All Changes</button>
                 </div>
             </form>
         </div>
     </main>
 </body>
+
 </html>

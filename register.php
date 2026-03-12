@@ -38,14 +38,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Check if username exists
             $username = trim(filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING));
             if (empty($username)) {
-                $username = explode('@', $email)[0]; 
+                $username = explode('@', $email)[0];
             }
-            
+
             $stmt_u = $conn->prepare("SELECT id FROM users WHERE username = ?");
             $stmt_u->bind_param("s", $username);
             $stmt_u->execute();
             $stmt_u->store_result();
-            
+
             if ($stmt_u->num_rows > 0) {
                 $error = "Username is already taken";
             } else {
@@ -68,6 +68,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -77,12 +78,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
+
 <body>
     <div class="center-screen">
         <div class="container">
             <!-- Back Button Placeholder -->
             <div style="text-align: left; margin-bottom: 20px;">
-            <a href="index.php" style="color: white; text-decoration: none; font-size: 24px;"><ion-icon name="arrow-back-outline"></ion-icon></a>
+                <a href="index.php" style="color: white; text-decoration: none; font-size: 24px;"><ion-icon
+                        name="arrow-back-outline"></ion-icon></a>
             </div>
 
             <div class="auth-card">
@@ -95,7 +98,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 <div class="logo-area">
                     <!-- Using the abstract shape defined in CSS -->
-                    <div class="logo-placeholder"></div>
+                    <!-- Updated Banner Image -->
+                    <img src="img/login_logo.jpg?v=<?php echo time(); ?>" alt="RenderShelf Logo"
+                        style="width: 100%; height: 220px; margin-bottom: 20px; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
                     <h1>Join the Shelf</h1>
                     <p class="subtitle">Access premium assets and tutorials for your next video edit.</p>
                 </div>
@@ -105,7 +110,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <label>Username</label>
                         <div class="input-wrapper">
                             <ion-icon name="person" class="input-icon"></ion-icon>
-                            <input type="text" name="username" placeholder="CreativeDirector" required value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                            <input type="text" name="username" placeholder="CreativeDirector" required
+                                value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
                         </div>
                     </div>
 
@@ -113,7 +119,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <label>Email</label>
                         <div class="input-wrapper">
                             <ion-icon name="mail" class="input-icon"></ion-icon>
-                            <input type="email" name="email" placeholder="editor@rendershelf.com" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                            <input type="email" name="email" placeholder="editor@rendershelf.com" required
+                                value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                         </div>
                     </div>
 
@@ -122,7 +129,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <div class="input-wrapper">
                             <ion-icon name="lock-closed" class="input-icon"></ion-icon>
                             <input type="password" name="password" placeholder="........" required>
-                            <ion-icon name="eye-off-outline" style="position: absolute; right: 14px; cursor: pointer;" onclick="togglePassword(this)"></ion-icon>
+                            <ion-icon name="eye-off-outline" style="position: absolute; right: 14px; cursor: pointer;"
+                                onclick="togglePassword(this)"></ion-icon>
                         </div>
                     </div>
 
@@ -137,7 +145,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="form-group">
                         <div class="checkbox-group">
                             <input type="checkbox" id="terms" required>
-                            <label for="terms" style="display:inline; color: #a0a0a0; margin:0;">I agree to the <a href="terms.php" style="color:#8a2be2">Terms of Service</a> and <a href="privacy.php" style="color:#8a2be2">Privacy Policy</a>.</label>
+                            <label for="terms" style="display:inline; color: #a0a0a0; margin:0;">I agree to the <a
+                                    href="terms.php" style="color:#8a2be2">Terms of Service</a> and <a
+                                    href="privacy.php" style="color:#8a2be2">Privacy Policy</a>.</label>
                         </div>
                     </div>
 
@@ -145,7 +155,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </form>
 
                 <!-- Google Button -->
-                <a href="google_login.php" class="btn-secondary" style="width:100%; display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:20px; text-decoration:none; padding:12px; border-radius:12px;">
+                <a href="google_login.php" class="btn-secondary"
+                    style="width:100%; display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:20px; text-decoration:none; padding:12px; border-radius:12px;">
                     <ion-icon name="logo-google"></ion-icon>
                     Continue with Google
                 </a>
@@ -153,8 +164,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="divider">
                     <span>OR CONTINUE WITH EMAIL</span>
                 </div>
-                
-                <p style="font-size: 13px; color: #a0a0a0;">Already have an account? <a href="login.php" style="color: #8a2be2;">Log In</a></p>
+
+                <p style="font-size: 13px; color: #a0a0a0;">Already have an account? <a href="login.php"
+                        style="color: #8a2be2;">Log In</a></p>
             </div>
         </div>
     </div>
@@ -172,4 +184,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     </script>
 </body>
+
 </html>

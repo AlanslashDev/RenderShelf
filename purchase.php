@@ -15,8 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['asset_id'])) {
     $stmt->bind_param("i", $asset_id);
     $stmt->execute();
     $res = $stmt->get_result();
-    
-    if ($res->num_rows == 0) die("Asset not found");
+
+    if ($res->num_rows == 0)
+        die("Asset not found");
     $asset = $res->fetch_assoc();
     $stmt->close();
 
@@ -24,13 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['asset_id'])) {
     $creator_id = $asset['creator_id'];
     $payment_method = $_POST['payment_method'] ?? 'wallet';
 
-    // Validation for card payment
-    if ($payment_method === 'card') {
-        if (empty($_POST['card_number']) || empty($_POST['expiry_date']) || empty($_POST['cvv']) || empty($_POST['cardholder_name'])) {
-            die("Invalid payment details.");
+    // Validation for Razorpay payment
+    if ($payment_method === 'razorpay') {
+        if (empty($_POST['razorpay_payment_id']) || empty($_POST['razorpay_order_id']) || empty($_POST['razorpay_signature'])) {
+            die("Invalid Razorpay payment details.");
         }
-        // In a real app, you'd process the card here. Since it's a mock, we just proceed.
-        $can_proceed = true;
+
+        $key_secret = get_setting('razorpay_key_secret');
+        if (empty($key_secret)) {
+            die("Razorpay configuration missing.");
+        }
+
+        $expected_signature = hash_hmac('sha256', $_POST['razorpay_order_id'] . '|' . $_POST['razorpay_payment_id'], $key_secret);
+
+        if (hash_equals($expected_signature, $_POST['razorpay_signature'])) {
+            $can_proceed = true;
+        } else {
+            die("Fraud detected: Payment signature verification failed.");
+        }
     } else {
         // Check Wallet Balance
         $can_proceed = ($_SESSION['wallet_balance'] >= $price);
@@ -47,11 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['asset_id'])) {
                 $_SESSION['wallet_balance'] -= $price;
                 $description = "Purchased (Wallet): {$asset['title']}";
             } else {
-                $description = "Purchased (Card): {$asset['title']}";
-                // For card payment, we don't deduct from wallet, but we record the purchase.
-                // In some systems, you might want to record it as an external deposit + purchase.
+                $description = "Purchased (Razorpay): {$asset['title']}";
+                // For Razorpay payment, we don't deduct from wallet, but we record the purchase.
             }
-            
+
             // Add to Creator (with 10% commission deduction)
             $commission_rate = 0.10;
             $earnings = $price * (1 - $commission_rate);
@@ -65,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['asset_id'])) {
             $conn->query("UPDATE assets SET download_count = download_count + 1 WHERE id=$asset_id");
 
             $conn->commit();
-            
+
             header("Location: asset_details.php?id=$asset_id&msg=Purchase Successful");
         } catch (Exception $e) {
             $conn->rollback();

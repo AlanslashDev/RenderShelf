@@ -50,12 +50,19 @@ if (isset($_GET['code'])) {
             if ($result->num_rows > 0) {
                 // User exists
                 $user = $result->fetch_assoc();
-                
+
                 // Link Google ID if not linked
                 if (empty($user['google_id'])) {
+                    // Only update profile pic if it is default or empty
+                    $current_pic = $user['profile_pic'] ?? 'default_profile.png';
+                    $new_pic = ($current_pic === 'default_profile.png') ? $picture : $current_pic;
+
                     $update = $conn->prepare("UPDATE users SET google_id = ?, profile_pic = ? WHERE id = ?");
-                    $update->bind_param("ssi", $google_id, $picture, $user['id']);
+                    $update->bind_param("ssi", $google_id, $new_pic, $user['id']);
                     $update->execute();
+
+                    // Update the session variable for profile pic too
+                    $user['profile_pic'] = $new_pic;
                 }
 
                 // Login Session
@@ -64,7 +71,7 @@ if (isset($_GET['code'])) {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['wallet_balance'] = $user['wallet_balance'];
-                $_SESSION['profile_pic'] = $user['profile_pic'] ?? null;
+                $_SESSION['profile_pic'] = $user['profile_pic'];
 
                 if ($user['role'] === 'admin') {
                     header("Location: admin_dashboard.php");
@@ -79,20 +86,28 @@ if (isset($_GET['code'])) {
                 $random_pass = bin2hex(random_bytes(8));
                 $hashed_pass = password_hash($random_pass, PASSWORD_DEFAULT);
                 // Create username from name (sanitize)
-                $username = preg_replace("/[^a-zA-Z0-9]/", "", $name);
-                
-                // Ensure unique username
-                $check_user = $conn->query("SELECT id FROM users WHERE username = '$username'");
-                if ($check_user->num_rows > 0) {
-                    $username .= rand(100, 999);
+                $base_username = preg_replace("/[^a-zA-Z0-9]/", "", $name);
+                $username = $base_username;
+
+                // Ensure unique username with loop
+                $counter = 1;
+                while (true) {
+                    $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
+                    $check->bind_param("s", $username);
+                    $check->execute();
+                    if ($check->get_result()->num_rows == 0) {
+                        break;
+                    }
+                    $username = $base_username . $counter;
+                    $counter++;
                 }
 
                 $stmt = $conn->prepare("INSERT INTO users (email, password_hash, username, google_id, profile_pic) VALUES (?, ?, ?, ?, ?)");
                 $stmt->bind_param("sssss", $email, $hashed_pass, $username, $google_id, $picture);
-                
+
                 if ($stmt->execute()) {
                     $new_user_id = $conn->insert_id;
-                    
+
                     $_SESSION['user_id'] = $new_user_id;
                     $_SESSION['email'] = $email;
                     $_SESSION['username'] = $username;

@@ -25,27 +25,30 @@ $stmt->bind_param("i", $asset_id);
 $stmt->execute();
 $asset = $stmt->get_result()->fetch_assoc();
 
-if (!$asset) die("Asset not found.");
+if (!$asset)
+    die("Asset not found.");
 
 if ($asset['creator_id'] == $user_id || $user_role == 'admin' || $asset['price'] == 0.00) {
     $owned = true;
 }
 
 if ($owned) {
-    $file_path = $asset['file_path'];
+    // Ensure absolute path resolution
+    $file_path = __DIR__ . '/' . ltrim($asset['file_path'], '/');
+
     if (file_exists($file_path)) {
         header('Content-Description: File Transfer');
         header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="'.basename($file_path).'"');
+        header('Content-Disposition: attachment; filename="' . basename($file_path) . '"');
         header('Expires: 0');
         header('Cache-Control: must-revalidate');
         header('Pragma: public');
         header('Content-Length: ' . filesize($file_path));
-        
+
         // Clear output buffer
-        flush(); 
+        flush();
         readfile($file_path);
-        
+
         // Optional: Update download count again if we want to track every download, 
         // but typically we track on Purchase. Up to preference.
         exit;

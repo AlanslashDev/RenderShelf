@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $_SESSION['role'] = $role;
                 $_SESSION['wallet_balance'] = $wallet_balance;
                 $_SESSION['profile_pic'] = $profile_pic;
-                
+
                 if ($role === 'admin') {
                     header("Location: admin_dashboard.php");
                 } else {
@@ -54,6 +54,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,49 +63,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
+
 <body>
     <div class="center-screen">
         <div class="container">
-             <div style="text-align: left; margin-bottom: 20px;">
-               <a href="index.php" style="color: white; text-decoration: none; font-size: 24px;"><ion-icon name="arrow-back-outline"></ion-icon></a>
+            <div style="text-align: left; margin-bottom: 20px;">
+                <a href="index.php" style="color: white; text-decoration: none; font-size: 24px;"><ion-icon
+                        name="arrow-back-outline"></ion-icon></a>
             </div>
-    
+
             <div class="auth-card">
                 <?php if (!empty($error)): ?>
                     <div class="error-message"><?php echo $error; ?></div>
                 <?php endif; ?>
-    
+
                 <div class="logo-area">
-                     <div class="logo-placeholder"></div>
-                     <h1>Welcome Back</h1>
-                     <p class="subtitle">Access your creative assets on RenderShelf</p>
+                    <img src="img/login_logo.jpg?v=<?php echo time(); ?>" alt="RenderShelf Logo"
+                        style="width: 100%; height: 220px; margin-bottom: 20px; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                    <h1>Welcome Back</h1>
+                    <p class="subtitle">Access your creative assets on RenderShelf</p>
                 </div>
-    
+
                 <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                     <div class="form-group">
                         <label>Email</label>
                         <div class="input-wrapper">
                             <ion-icon name="mail" class="input-icon"></ion-icon>
-                            <input type="email" name="email" placeholder="editor@rendershelf.com" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                            <input type="email" name="email" placeholder="editor@rendershelf.com" required
+                                value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
                         </div>
                     </div>
-    
+
                     <div class="form-group">
                         <label>Password</label>
                         <div class="input-wrapper">
                             <ion-icon name="lock-closed" class="input-icon"></ion-icon>
                             <input type="password" name="password" placeholder="........" required>
-                            <ion-icon name="eye-off-outline" style="position: absolute; right: 14px; cursor: pointer;" onclick="togglePassword(this)"></ion-icon>
+                            <ion-icon name="eye-off-outline" style="position: absolute; right: 14px; cursor: pointer;"
+                                onclick="togglePassword(this)"></ion-icon>
                         </div>
                         <div style="text-align: right; margin-top: 8px;">
-                            <a href="forgot_password.php" style="color: #8a2be2; font-size: 13px; text-decoration: none;">Forgot Password?</a>
+                            <a href="forgot_password.php"
+                                style="color: #8a2be2; font-size: 13px; text-decoration: none;">Forgot Password?</a>
                         </div>
                     </div>
-    
+
                     <button type="submit" class="btn-primary">Log In</button>
                 </form>
-    
-                <a href="google_login.php" class="btn-secondary" style="width:100%; display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:20px; text-decoration:none; padding:12px; border-radius:12px;">
+
+                <a href="google_login.php" class="btn-secondary"
+                    style="width:100%; display:flex; justify-content:center; align-items:center; gap:10px; margin-bottom:20px; text-decoration:none; padding:12px; border-radius:12px;">
                     <ion-icon name="logo-google"></ion-icon>
                     Continue with Google
                 </a>
@@ -112,8 +120,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="divider">
                     <span>OR CONTINUE WITH EMAIL</span>
                 </div>
-                
-                <p style="font-size: 13px; color: #a0a0a0;">New to RenderShelf? <a href="register.php" style="color: #8a2be2;">Sign Up</a></p>
+
+                <p style="font-size: 13px; color: #a0a0a0;">New to RenderShelf? <a href="register.php"
+                        style="color: #8a2be2;">Sign Up</a></p>
             </div>
         </div>
     </div>
@@ -131,4 +140,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     </script>
 </body>
+
 </html>
