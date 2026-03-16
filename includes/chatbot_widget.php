@@ -304,9 +304,9 @@
             <!-- Messages will appear here -->
             <div class="message bot">
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                    Hi Admin! 👋 I'm ShelfBot. Ask me about approval queues, revenue, or user stats.
+                    Hi Admin! 👋 I'm **ShelfBot**. I can help you check approvals, revenue, or platform stats.
                 <?php else: ?>
-                    Hi! 👋 I'm ShelfBot. Ask me about uploads, payments, or your account.
+                    Hi! 👋 I'm **ShelfBot**. I can help you find assets, check your balance, or manage your library.
                 <?php endif; ?>
             </div>
         </div>
@@ -319,13 +319,14 @@
 
         <div class="quick-replies">
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                <div class="chip" onclick="sendQuickReply('How many pending approvals?')">Pending Approvals</div>
-                <div class="chip" onclick="sendQuickReply('Total revenue sales')">Total Revenue</div>
-                <div class="chip" onclick="sendQuickReply('Admin help')">Admin Help</div>
+                <div class="chip" onclick="sendQuickReply('Pending approvals')">Pending Approvals</div>
+                <div class="chip" onclick="sendQuickReply('Revenue stats')">Total Revenue</div>
+                <div class="chip" onclick="sendQuickReply('What can you do?')">Bot Help</div>
             <?php else: ?>
-                <div class="chip" onclick="sendQuickReply('How do I upload?')">How to upload?</div>
-                <div class="chip" onclick="sendQuickReply('Where is my wallet?')">My Wallet</div>
-                <div class="chip" onclick="sendQuickReply('Refund policy')">Refunds</div>
+                <div class="chip" onclick="sendQuickReply('What is my balance?')">Balance</div>
+                <div class="chip" onclick="sendQuickReply('Show my library')">My Library</div>
+                <div class="chip" onclick="sendQuickReply('What is popular?')">Trending</div>
+                <div class="chip" onclick="sendQuickReply('How do I upload?')">Selling</div>
             <?php endif; ?>
         </div>
 
@@ -356,9 +357,6 @@
 
         if (chatWindow.classList.contains('active')) {
             icon.name = 'close-outline';
-            if (messagesContainer.children.length <= 1) { // If only welcome message
-                // Optional: Scroll to bottom
-            }
             chatInput.focus();
         } else {
             icon.name = 'chatbubble-ellipses';
@@ -401,10 +399,10 @@
         })
             .then(response => response.json())
             .then(data => {
-                setTimeout(() => { // Artifical delay for realism
+                setTimeout(() => { 
                     hideTyping();
                     addMessage(data.response, 'bot', data.action);
-                }, 600 + Math.random() * 500);
+                }, 600 + Math.random() * 400);
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -417,8 +415,9 @@
         const div = document.createElement('div');
         div.className = `message ${sender}`;
 
-        // Convert **bold** to <b>bold</b> (simple markdown)
-        const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        // Format: **Bold** and \n to <br>
+        let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        formattedText = formattedText.replace(/\n/g, '<br>');
         div.innerHTML = formattedText;
 
         if (action) {
@@ -436,12 +435,13 @@
 
     function showTyping() {
         typingIndicator.style.display = 'flex';
-        messagesContainer.appendChild(typingIndicator); // Move to bottom
+        messagesContainer.appendChild(typingIndicator); 
         scrollToBottom();
     }
 
     function hideTyping() {
         typingIndicator.style.display = 'none';
+        // Move typing indicator back after messages if needed, but display: none handles it
     }
 
     function scrollToBottom() {
@@ -449,6 +449,7 @@
     }
 
     function clearChat() {
-        messagesContainer.innerHTML = '<div class="message bot">Hi! 👋 I\'m ShelfBot. Ask me about uploads, payments, or your account.</div>';
+        messagesContainer.innerHTML = `<div class="message bot">Hi! 👋 I'm **ShelfBot**. How can I help you today?</div>`;
+        scrollToBottom();
     }
 </script>

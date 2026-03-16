@@ -60,7 +60,18 @@ body {
 
 /* ... (Keep existing auth styles for consistency) ... */
 .logo-area {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.auth-banner {
+    width: 100%;
+    height: 240px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-bottom: 30px;
+    display: block;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 .logo-placeholder {

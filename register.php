@@ -97,10 +97,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <?php endif; ?>
 
                 <div class="logo-area">
-                    <!-- Using the abstract shape defined in CSS -->
-                    <!-- Updated Banner Image -->
-                    <img src="img/login_logo.jpg?v=<?php echo time(); ?>" alt="RenderShelf Logo"
-                        style="width: 100%; height: 220px; margin-bottom: 20px; border-radius: 16px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+                    <img src="img/login_banner.png?v=<?php echo time(); ?>" alt="RenderShelf Logo" class="auth-banner">
                     <h1>Join the Shelf</h1>
                     <p class="subtitle">Access premium assets and tutorials for your next video edit.</p>
                 </div>

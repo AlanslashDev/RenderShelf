@@ -116,6 +116,21 @@ $download_count = $download_count_res->fetch_row()[0] ?? 0;
 
 $sales_count_res = $conn->query("SELECT COUNT(*) FROM transactions WHERE type='purchase' AND related_asset_id IN (SELECT id FROM assets WHERE creator_id = $user_id)");
 $sales_count = $sales_count_res->fetch_row()[0];
+
+// Chart Data: User's weekly earnings
+$chart_labels = [];
+$chart_revenue = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $display_date = date('D', strtotime("-$i days"));
+    $chart_labels[] = $display_date;
+    
+    $daily_income_query = $conn->prepare("SELECT SUM(amount) as s FROM transactions WHERE type='purchase' AND DATE(created_at) = ? AND related_asset_id IN (SELECT id FROM assets WHERE creator_id = ?)");
+    $daily_income_query->bind_param("si", $date, $user_id);
+    $daily_income_query->execute();
+    $daily_income = $daily_income_query->get_result()->fetch_assoc()['s'] ?? 0;
+    $chart_revenue[] = (float)$daily_income;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -126,6 +141,7 @@ $sales_count = $sales_count_res->fetch_row()[0];
     <link rel="stylesheet" href="style.css?v=<?php echo time(); ?>">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <?php if ($user['role'] === 'admin'): ?>
         <?php include 'includes/admin_styles.php'; ?>
     <?php endif; ?>
@@ -284,6 +300,20 @@ $sales_count = $sales_count_res->fetch_row()[0];
                     <div class="error-message" style="margin:0; border-radius: 16px;"><?php echo $error; ?></div>
                 <?php endif; ?>
 
+                <!-- Dashboard Statistics & Analytics -->
+                <div class="form-card" style="margin-bottom: 30px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <h4 style="margin:0; font-size: 14px; color: #aaa;">Weekly Revenue</h4>
+                            <div style="font-size: 24px; font-weight: 700; color: #38ef7d; margin-top: 5px;">₹<?php echo number_format($chart_revenue[6], 2); ?></div>
+                        </div>
+                        <ion-icon name="trending-up-outline" style="font-size: 24px; color: #38ef7d;"></ion-icon>
+                    </div>
+                    <div style="height: 180px; width: 100%;">
+                        <canvas id="profileRevenueChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- Public Info -->
                 <div class="form-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
@@ -373,5 +403,50 @@ $sales_count = $sales_count_res->fetch_row()[0];
         </a>
     </nav>
     <?php endif; ?>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('profileRevenueChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+            gradient.addColorStop(0, 'rgba(56, 239, 125, 0.2)');
+            gradient.addColorStop(1, 'rgba(56, 239, 125, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: <?php echo json_encode($chart_labels); ?>,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: <?php echo json_encode($chart_revenue); ?>,
+                        borderColor: '#38ef7d',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            display: true, 
+                            min: 50,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#444', font: { size: 9 }, callback: value => '₹' + value }
+                        },
+                        x: { 
+                            display: true, 
+                            grid: { display: false }, 
+                            ticks: { color: '#444', font: { size: 9 } } 
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

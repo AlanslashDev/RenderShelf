@@ -24,6 +24,9 @@ $recent_assets = $conn->query("SELECT a.*, u.username as creator_name, c.name as
 // Recent Transactions
 $recent_tx = $conn->query("SELECT t.*, u.username FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 5");
 
+// Recent Transactions
+$recent_tx = $conn->query("SELECT t.*, u.username FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 5");
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -379,55 +382,14 @@ $recent_tx = $conn->query("SELECT t.*, u.username FROM transactions t JOIN users
                                     </div>
                                 </div>
                             <?php endwhile; ?>
-                        </div>
                     </section>
 
-                    <section class="content-box">
-                        <div class="box-header">
-                            <div>
-                                <h3 style="margin:0; display: flex; align-items: center; gap: 10px;">
-                                    <ion-icon name="trending-up-outline" style="color: #38ef7d;"></ion-icon>
-                                    Platform Growth
-                                </h3>
-                                <p style="font-size: 12px; color: #555; margin-top: 4px;">User and asset analytics
-                                    overview.</p>
-                            </div>
-                        </div>
-                        <div class="chart-placeholder" style="height: 250px;">
-                            <div style="text-align: center;">
-                                <div
-                                    style="font-size: 11px; color: #444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">
-                                    Network Activity Pulse</div>
-                                <div style="display: flex; gap: 8px; align-items: flex-end; height: 80px;">
-                                    <div style="width: 5px; height: 20px; background: #222; border-radius: 10px;"></div>
-                                    <div style="width: 5px; height: 45px; background: #333; border-radius: 10px;"></div>
-                                    <div style="width: 5px; height: 30px; background: #444; border-radius: 10px;"></div>
-                                    <div
-                                        style="width: 5px; height: 60px; background: var(--accent-color); border-radius: 10px;">
-                                    </div>
-                                    <div
-                                        style="width: 5px; height: 80px; background: var(--accent-color); border-radius: 10px; box-shadow: 0 0 15px var(--accent-color);">
-                                    </div>
-                                    <div style="width: 5px; height: 50px; background: #38b0ff44; border-radius: 10px;">
-                                    </div>
-                                    <div style="width: 5px; height: 40px; background: #333; border-radius: 10px;"></div>
-                                    <div style="width: 5px; height: 25px; background: #222; border-radius: 10px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
                 </div>
-
             </div>
         </div>
     </main>
+
     <!-- Chatbot Widget -->
     <?php include 'includes/chatbot_widget.php'; ?>
 </body>
-
-</html>
-</div>
-</main>
-</body>
-
 </html>
