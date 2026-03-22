@@ -158,9 +158,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     Continue with Google
                 </a>
 
-                <div class="divider">
-                    <span>OR CONTINUE WITH EMAIL</span>
-                </div>
 
                 <p style="font-size: 13px; color: #a0a0a0;">Already have an account? <a href="login.php"
                         style="color: #8a2be2;">Log In</a></p>

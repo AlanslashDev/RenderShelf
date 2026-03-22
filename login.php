@@ -103,7 +103,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         </div>
                         <div style="text-align: right; margin-top: 8px;">
                             <a href="forgot_password.php"
-                                style="color: #8a2be2; font-size: 13px; text-decoration: none;">Forgot Password?</a>
+                                style="color: #8a2be2; font-size: 13px; text-decoration: none; font-weight: 500;">Forgot Password?</a>
                         </div>
                     </div>
 
@@ -116,9 +116,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     Continue with Google
                 </a>
 
-                <div class="divider">
-                    <span>OR CONTINUE WITH EMAIL</span>
-                </div>
 
                 <p style="font-size: 13px; color: #a0a0a0;">New to RenderShelf? <a href="register.php"
                         style="color: #8a2be2;">Sign Up</a></p>

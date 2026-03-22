@@ -1,7 +1,10 @@
 <?php
 // Prevent any output before JSON
-error_reporting(0);
+// Enable error logging for debugging
+error_reporting(E_ALL);
 ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', 'php_errors.log');
 
 require_once 'config.php';
 require_once 'vendor/autoload.php';
@@ -12,7 +15,7 @@ use PHPMailer\PHPMailer\Exception;
 header('Content-Type: application/json');
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    $email = isset($_POST['email']) ? filter_var($_POST['email'], FILTER_SANITIZE_EMAIL) : '';
 
     if (empty($email)) {
         echo json_encode(['success' => false, 'message' => 'Please enter your email']);
@@ -46,14 +49,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mail = new PHPMailer(true);
 
                 // Server settings
-                $mail->SMTPDebug = 0; // Disable verbose debug output for production
+                $mail->SMTPDebug = 2; // Enable verbose debug output
+                $mail->Debugoutput = function($str, $level) {
+                    file_put_contents('otp_log.txt', "[SMTP DEBUG] $str\n", FILE_APPEND);
+                };
                 $mail->isSMTP();
-                $mail->Host = getenv('SMTP_HOST');
+                $mail->Host = getenv('SMTP_HOST') ?: 'smtp.gmail.com';
                 $mail->SMTPAuth = true;
-                $mail->Username = getenv('SMTP_USER');
-                $mail->Password = getenv('SMTP_PASS');
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-                $mail->Port = getenv('SMTP_PORT');
+                $mail->Username = getenv('SMTP_USER') ?: ($_ENV['SMTP_USER'] ?? '');
+                $mail->Password = getenv('SMTP_PASS') ?: ($_ENV['SMTP_PASS'] ?? '');
+                $port = getenv('SMTP_PORT') ?: ($_ENV['SMTP_PORT'] ?? 587);
+                
+                // Set Port and Security
+                if ($port == 465) {
+                    $mail->Port = 465;
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+                } else {
+                    $mail->Port = $port ?: 587;
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                }
+
+                // SSL settings to bypass possible local certificate issues
                 $mail->SMTPOptions = array(
                     'ssl' => array(
                         'verify_peer' => false,
@@ -110,13 +126,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $mail->send();
                 echo json_encode(['success' => true, 'message' => 'OTP sent successfully to your email']);
             } catch (Exception $e) {
-                // FALLBACK: Log OTP to file for local development/testing if email fails
-                $log_msg = "[" . date('Y-m-d H:i:s') . "] OTP for $email: $otp\n";
+                // FALLBACK: Log OTP and Error to file for local development/testing if email fails
+                $mail_error = $mail->ErrorInfo;
+                $log_msg = "[" . date('Y-m-d H:i:s') . "] OTP for $email: $otp | Error: $mail_error | Msg: " . $e->getMessage() . "\n";
                 file_put_contents('otp_log.txt', $log_msg, FILE_APPEND);
+
+                $friendly_msg = "Mail Sending Failed ($mail_error). ";
+                if (strpos($mail_error, 'authenticate') !== false) {
+                    $friendly_msg .= "GMAIL USERS: You MUST use an 'App Password' from Google Account settings, NOT your regular password. Ensure 2FA is ON.";
+                }
 
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Dev Mode: Email failed, but OTP was saved to otp_log.txt. Your OTP is: ' . $otp
+                    'message' => 'Dev Mode: ' . $friendly_msg . ' | Your OTP is: ' . $otp
                 ]);
             }
         } else {
