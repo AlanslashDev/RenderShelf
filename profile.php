@@ -114,7 +114,7 @@ $asset_count = $asset_count_res->fetch_row()[0];
 $download_count_res = $conn->query("SELECT SUM(download_count) FROM assets WHERE creator_id = $user_id");
 $download_count = $download_count_res->fetch_row()[0] ?? 0;
 
-$sales_count_res = $conn->query("SELECT COUNT(*) FROM transactions WHERE type='purchase' AND related_asset_id IN (SELECT id FROM assets WHERE creator_id = $user_id)");
+$sales_count_res = $conn->query("SELECT COUNT(*) FROM transactions WHERE type='sale' AND user_id = $user_id");
 $sales_count = $sales_count_res->fetch_row()[0];
 
 // Chart Data: User's weekly earnings
@@ -125,7 +125,7 @@ for ($i = 6; $i >= 0; $i--) {
     $display_date = date('D', strtotime("-$i days"));
     $chart_labels[] = $display_date;
     
-    $daily_income_query = $conn->prepare("SELECT SUM(amount) as s FROM transactions WHERE type='purchase' AND DATE(created_at) = ? AND related_asset_id IN (SELECT id FROM assets WHERE creator_id = ?)");
+    $daily_income_query = $conn->prepare("SELECT SUM(amount) as s FROM transactions WHERE type='sale' AND DATE(created_at) = ? AND user_id = ?");
     $daily_income_query->bind_param("si", $date, $user_id);
     $daily_income_query->execute();
     $daily_income = $daily_income_query->get_result()->fetch_assoc()['s'] ?? 0;
@@ -434,7 +434,7 @@ for ($i = 6; $i >= 0; $i--) {
                     scales: {
                         y: { 
                             display: true, 
-                            min: 50,
+                            beginAtZero: true,
                             grid: { color: 'rgba(255,255,255,0.05)' },
                             ticks: { color: '#444', font: { size: 9 }, callback: value => '₹' + value }
                         },

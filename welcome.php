@@ -31,7 +31,7 @@ $my_uploads_result = $conn->query("SELECT * FROM assets WHERE creator_id = $user
 $my_uploads = $my_uploads_result->fetch_all(MYSQLI_ASSOC);
 
 // Fetch Generated Income (Total from sales)
-$income_query = $conn->prepare("SELECT SUM(amount) as total_income FROM transactions WHERE type='purchase' AND related_asset_id IN (SELECT id FROM assets WHERE creator_id = ?)");
+$income_query = $conn->prepare("SELECT SUM(amount) as total_income FROM transactions WHERE type='sale' AND user_id = ?");
 $income_query->bind_param("i", $user_id);
 $income_query->execute();
 $income_res = $income_query->get_result()->fetch_assoc();
